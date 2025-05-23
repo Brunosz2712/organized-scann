@@ -28,6 +28,7 @@ export default function Welcome() {
                 <Text style={styles.buttonText}>Acessar</Text>
             </TouchableOpacity>
 
+            {/* Botão para ir para RegisterMotorcycle */}
             <TouchableOpacity 
                 style={[styles.button, styles.buttonSecondary]}
                 onPress={() => navigation.navigate('RegisterMotorcycle')}
@@ -35,6 +36,7 @@ export default function Welcome() {
                 <Text style={[styles.buttonText, styles.buttonSecondaryText]}>Cadastrar Motocicleta</Text>
             </TouchableOpacity>
 
+            {/* Novo botão para ir para RegisteredMotorcycles */}
             <TouchableOpacity 
                 style={[styles.button, styles.buttonSecondary]}
                 onPress={() => navigation.navigate('RegisteredMotorcycles')}
@@ -58,7 +60,6 @@ const styles = StyleSheet.create({
         backgroundColor:"#161616",
         justifyContent: "center",
         alignItems: "center",
-        paddingHorizontal: 20,
     },
     containerForm:{
         flex: 1,
@@ -68,7 +69,6 @@ const styles = StyleSheet.create({
         paddingStart: "5%",
         paddingEnd: "5%",
         paddingTop: 20,
-        alignItems: 'center',
     },
     title:{
         fontSize: 24,
@@ -76,27 +76,20 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "bold",
         marginBottom: 12,
-        textAlign: 'center',
     },
     text:{
         color: "#fff",
         marginBottom: 20,
-        textAlign: 'center',
     },
     button:{
         backgroundColor: "#fff",
         borderRadius: 50,
-        paddingVertical: 12,
-        width: "70%",
-        maxWidth: 300,
+        paddingVertical: 8,
+        width: "60%",
+        alignSelf: "center",
         alignItems: "center",
         justifyContent: "center",
-        marginVertical: 8,
-        elevation: 3, // sombra Android
-        shadowColor: "#000", // sombra iOS
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
+        marginVertical: 10,
     },
     buttonText:{
         fontSize: 18,

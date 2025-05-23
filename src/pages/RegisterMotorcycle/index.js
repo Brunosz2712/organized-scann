@@ -1,103 +1,130 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from "react";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import * as Animatable from 'react-native-animatable';
+import { useNavigation } from '@react-navigation/native';
 
-const STORAGE_KEY = '@motorcycles_list';
+export default function RegisterMotorcycle() {
+    const navigation = useNavigation();
 
-export default function RegisterMotorcycle({ navigation }) {
-  const [marca, setMarca] = useState('');
-  const [modelo, setModelo] = useState('');
-  const [ano, setAno] = useState('');
+    return (
+        <View style={styles.container}>
 
-  const handleCadastro = async () => {
-    if (!marca || !modelo || !ano) {
-      Alert.alert('Erro', 'Preencha todos os campos!');
-      return;
-    }
+            <Animatable.View animation="fadeInLeft" delay={500} style={styles.containerHeader}>
+                <Text style={styles.message}>Cadastrar Motocicleta</Text>
+            </Animatable.View>
 
-    try {
-      const storedData = await AsyncStorage.getItem(STORAGE_KEY);
-      const currentList = storedData ? JSON.parse(storedData) : [];
+            <Animatable.View animation="fadeInUp" style={styles.containerForm}>
+                <Text style={styles.title}>RFID</Text>
+                <TextInput
+                    placeholder="Digite o RFID"
+                    style={styles.input}
+                    placeholderTextColor="#ccc"
+                />
 
-      const newList = [...currentList, { marca, modelo, ano }];
+                <Text style={styles.title}>Placa</Text>
+                <TextInput
+                    placeholder="Digite a placa"
+                    style={styles.input}
+                    placeholderTextColor="#ccc"
+                />
 
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+                <Text style={styles.title}>Chassi</Text>
+                <TextInput
+                    placeholder="Digite o chassi"
+                    style={styles.input}
+                    placeholderTextColor="#ccc"
+                />
 
-      setMarca('');
-      setModelo('');
-      setAno('');
+                <Text style={styles.title}>Filial</Text>
+                <TextInput
+                    placeholder="Digite a filial"
+                    style={styles.input}
+                    placeholderTextColor="#ccc"
+                />
 
-      Alert.alert('Sucesso', 'Motocicleta cadastrada!', [
-        { text: 'OK', onPress: () => navigation.navigate('RegisteredMotorcycles') },
-      ]);
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar a motocicleta.');
-    }
-  };
+                <Text style={styles.title}>Status</Text>
+                <TextInput
+                    placeholder="Digite o status"
+                    style={styles.input}
+                    placeholderTextColor="#ccc"
+                />
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Cadastrar Motocicleta</Text>
+                <Text style={styles.title}>Portal</Text>
+                <TextInput
+                    placeholder="Digite o portal"
+                    style={styles.input}
+                    placeholderTextColor="#ccc"
+                />
 
-      <TextInput
-        placeholder="Marca"
-        style={styles.input}
-        value={marca}
-        onChangeText={setMarca}
-      />
-      <TextInput
-        placeholder="Modelo"
-        style={styles.input}
-        value={modelo}
-        onChangeText={setModelo}
-      />
-      <TextInput
-        placeholder="Ano"
-        style={styles.input}
-        keyboardType="numeric"
-        value={ano}
-        onChangeText={setAno}
-      />
+                <TouchableOpacity style={styles.button}>
+                    <Text style={styles.buttonText}>Cadastrar Moto</Text>
+                </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handleCadastro}>
-        <Text style={styles.buttonText}>Cadastrar</Text>
-      </TouchableOpacity>
+                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Text style={styles.backButtonText}>Voltar</Text>
+                </TouchableOpacity>
+            </Animatable.View>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.backButtonText}>Voltar</Text>
-      </TouchableOpacity>
-    </View>
-  );
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: { flex:1, backgroundColor:'#268B7D', padding:20, justifyContent:'center' },
-  title: { fontSize:24, fontWeight:'bold', marginBottom:20, color:'#fff', textAlign:'center' },
-  input: {
-    backgroundColor:'#fff',
-    borderRadius:6,
-    padding:12,
-    marginBottom:15,
-    fontSize:16,
-  },
-  button: {
-    backgroundColor:'#1E5F55',
-    paddingVertical:12,
-    borderRadius:50,
-    alignItems:'center',
-  },
-  buttonText: {
-    color:'#fff',
-    fontWeight:'bold',
-    fontSize:18,
-  },
-  backButton: {
-    marginTop:15,
-    alignItems:'center',
-  },
-  backButtonText: {
-    color:'#fff',
-    textDecorationLine:'underline',
-    fontSize:16,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: "#161616"
+    },
+    containerHeader: {
+        marginTop: '25%',
+        marginBottom: '8%',
+        paddingStart: '5%',
+    },
+    message: {
+        fontSize: 30,
+        fontWeight: 'bold',
+        color: '#fff'
+    },
+    containerForm: {
+        flex: 1,
+        backgroundColor: "#268B7D",
+        borderTopEndRadius: 25,
+        borderTopStartRadius: 25,
+        paddingStart: "5%",
+        paddingEnd: "5%",
+        paddingTop: 20,
+    },
+    title: {
+        fontSize: 20,
+        marginTop: 20,
+        color: "#fff",
+    },
+    input: {
+        borderBottomWidth: 1,
+        height: 40,
+        marginBottom: 12,
+        fontSize: 16,
+        color: "#fff"
+    },
+    button: {
+        backgroundColor: "#1E5F55",
+        width: "100%",
+        borderRadius: 4,
+        paddingVertical: 10,
+        marginTop: 20,
+        alignItems: "center"
+    },
+    buttonText: {
+        color: "#fff",
+        fontSize: 18,
+        fontWeight: "bold"
+    },
+    backButton: {
+        marginTop: 15,
+        alignItems: "center"
+    },
+    backButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        textDecorationLine: "underline"
+    }
 });

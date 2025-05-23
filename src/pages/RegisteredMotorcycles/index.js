@@ -1,104 +1,107 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import * as Animatable from 'react-native-animatable';
+import { useNavigation } from '@react-navigation/native';
 
-const STORAGE_KEY = '@motorcycles_list';
+export default function RegisteredMotorcycles() {
+  const navigation = useNavigation();
 
-export default function RegisteredMotorcycles({ navigation }) {
-  const [motorcycles, setMotorcycles] = useState([]);
+  const motorcycles = [
+    { id: "1", rfid: "123456789", placa: "ABC-1234", chassi: "XYZ987654321", filial: "São Paulo", status: "Ativa", portal: "Portal A" },
+    { id: "2", rfid: "987654321", placa: "DEF-5678", chassi: "ABC123456789", filial: "Rio de Janeiro", status: "Inativa", portal: "Portal B" },
+  ];
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadMotorcycles();
-    });
-    return unsubscribe;
-  }, [navigation]);
-
-  const loadMotorcycles = async () => {
-    try {
-      const storedData = await AsyncStorage.getItem(STORAGE_KEY);
-      if (storedData) {
-        setMotorcycles(JSON.parse(storedData));
-      } else {
-        setMotorcycles([]);
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar as motocicletas.');
-    }
-  };
-
-  const deleteMotorcycle = (index) => {
-    Alert.alert(
-      'Excluir Motocicleta',
-      'Tem certeza que deseja excluir essa motocicleta?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            const updatedList = [...motorcycles];
-            updatedList.splice(index, 1);
-            setMotorcycles(updatedList);
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
-          }
-        }
-      ]
-    );
-  };
-
-  const renderItem = ({ item, index }) => (
+  const renderItem = ({ item }) => (
     <View style={styles.card}>
-      <Text style={styles.text}><Text style={styles.label}>Marca:</Text> {item.marca}</Text>
-      <Text style={styles.text}><Text style={styles.label}>Modelo:</Text> {item.modelo}</Text>
-      <Text style={styles.text}><Text style={styles.label}>Ano:</Text> {item.ano}</Text>
-
-      <TouchableOpacity 
-        style={styles.deleteButton}
-        onPress={() => deleteMotorcycle(index)}
-      >
-        <Text style={styles.deleteButtonText}>Excluir</Text>
-      </TouchableOpacity>
+      <Text style={styles.cardTitle}>Placa: {item.placa}</Text>
+      <Text style={styles.cardText}>RFID: {item.rfid}</Text>
+      <Text style={styles.cardText}>Chassi: {item.chassi}</Text>
+      <Text style={styles.cardText}>Filial: {item.filial}</Text>
+      <Text style={styles.cardText}>Status: {item.status}</Text>
+      <Text style={styles.cardText}>Portal: {item.portal}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Motocicletas Cadastradas</Text>
+      <View style={styles.containerLogo}>
+        {/* Pode colocar uma imagem aqui se quiser */}
+      </View>
 
-      {motorcycles.length === 0 ? (
-        <Text style={styles.emptyText}>Nenhuma motocicleta cadastrada.</Text>
-      ) : (
+      <Animatable.View animation="fadeInUp" delay={500} style={styles.containerForm}>
+        <Text style={styles.title}>Motocicletas Cadastradas</Text>
+
         <FlatList
           data={motorcycles}
-          keyExtractor={(_, index) => index.toString()}
+          keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: 80 }}
         />
-      )}
 
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.backButtonText}>Voltar</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate('Welcome')}
+        >
+          <Text style={styles.buttonText}>Voltar para o início</Text>
+        </TouchableOpacity>
+      </Animatable.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex:1, backgroundColor:'#268B7D', padding:20 },
-  title: { fontSize:26, fontWeight:'bold', color:'#fff', marginBottom:20, textAlign:'center' },
-  card: { backgroundColor:'#1E5F55', borderRadius:10, padding:15, marginBottom:15 },
-  text: { color:'#fff', fontSize:18, marginBottom:6 },
-  label: { fontWeight:'bold' },
-  deleteButton: {
-    marginTop:10,
-    backgroundColor:'#161616',
-    paddingVertical:6,
-    borderRadius:6,
-    alignItems:'center',
+  container: {
+    flex: 1,
+    backgroundColor: "#161616",
   },
-  deleteButtonText: { color:'#ff6666', fontWeight:'bold', fontSize:16 },
-  emptyText: { color:'#fff', fontSize:18, textAlign:'center', marginTop:50 },
-  backButton: { marginTop:20, alignItems:'center' },
-  backButtonText: { color:'#fff', fontSize:16, textDecorationLine:'underline' },
+  containerLogo: {
+    flex: 1,
+    backgroundColor: "#161616",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  containerForm: {
+    flex: 2,
+    backgroundColor: "#268B7D",
+    borderTopStartRadius: 25,
+    borderTopEndRadius: 25,
+    paddingHorizontal: "5%",
+    paddingTop: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  card: {
+    backgroundColor: "#1E5F55",
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 5,
+  },
+  cardText: {
+    color: "#fff",
+    marginBottom: 2,
+  },
+  button: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 10,
+    marginBottom: 55, // espaço inferior para o botão não ficar colado
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "#268B7D",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
 });
