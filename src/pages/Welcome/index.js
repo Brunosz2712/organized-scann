@@ -11,7 +11,7 @@ export default function Welcome() {
         <View style={styles.containerLogo}>
             <Animatable.Image
                 animation="flipInY"
-                source={require('../../assets/OS.png')}
+                source={require('../../assets/Logo.OrganizedScann.png')}
                 style={{width: "100%"}}
                 resizeMode="contain"
             />
@@ -53,11 +53,11 @@ export default function Welcome() {
 const styles = StyleSheet.create({
     container:{
         flex: 1,
-        backgroundColor:"#161616"
+        backgroundColor:"#000"
     },
     containerLogo:{
         flex: 2,
-        backgroundColor:"#161616",
+        backgroundColor:"#000",
         justifyContent: "center",
         alignItems: "center",
     },
