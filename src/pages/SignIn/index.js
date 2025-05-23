@@ -1,8 +1,35 @@
-import React from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
 import * as Animatable from 'react-native-animatable';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SignIn({ navigation }) {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
+    const handleLogin = async () => {
+        try {
+            const storedUser = await AsyncStorage.getItem('@user_data');
+
+            if (!storedUser) {
+                Alert.alert('Erro', 'Nenhum usuário cadastrado!');
+                return;
+            }
+
+            const userData = JSON.parse(storedUser);
+
+            if (email === userData.email && password === userData.password) {
+                Alert.alert('Sucesso', 'Login realizado com sucesso!');
+                navigation.navigate('RegisterMotorcycle'); // Redireciona após login
+            } else {
+                Alert.alert('Erro', 'E-mail ou senha inválidos!');
+            }
+        } catch (error) {
+            Alert.alert('Erro', 'Erro ao tentar fazer login.');
+            console.log(error);
+        }
+    };
+
     return (
         <View style={styles.container}>
 
@@ -16,6 +43,8 @@ export default function SignIn({ navigation }) {
                     placeholder="Digite seu e-mail"
                     style={styles.input}
                     placeholderTextColor="#ccc"
+                    value={email}
+                    onChangeText={setEmail}
                 />
 
                 <Text style={styles.title}>Senha</Text>
@@ -24,9 +53,14 @@ export default function SignIn({ navigation }) {
                     style={styles.input}
                     secureTextEntry
                     placeholderTextColor="#ccc"
+                    value={password}
+                    onChangeText={setPassword}
                 />
 
-                <TouchableOpacity style={styles.button}>
+                <TouchableOpacity 
+                    style={styles.button}
+                    onPress={handleLogin}
+                >
                     <Text style={styles.buttonText}>Acessar</Text>
                 </TouchableOpacity>
 
@@ -37,7 +71,6 @@ export default function SignIn({ navigation }) {
                     <Text style={styles.registerText}>Não possui uma conta? Cadastre-se</Text>
                 </TouchableOpacity>
 
-                {/* Botão para voltar para a tela Welcome */}
                 <TouchableOpacity 
                     style={styles.backButton} 
                     onPress={() => navigation.navigate('Welcome')}
@@ -102,7 +135,6 @@ const styles = StyleSheet.create({
     buttonRegister: {
         marginTop: 14,
         alignSelf: "center"
-        
     },
     registerText: {
         color: "#fff",

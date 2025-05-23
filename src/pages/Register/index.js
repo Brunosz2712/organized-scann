@@ -1,14 +1,43 @@
-import React from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
 import * as Animatable from 'react-native-animatable';
-import { useNavigation } from '@react-navigation/native'; // ✅ Importa navegação
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Register() {
-    const navigation = useNavigation(); // ✅ Instancia o objeto de navegação
+    const navigation = useNavigation();
+
+    const [fullName, setFullName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
+    const handleRegister = async () => {
+        if (!fullName || !email || !password || !confirmPassword) {
+            Alert.alert("Erro", "Preencha todos os campos!");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            Alert.alert("Erro", "As senhas não coincidem!");
+            return;
+        }
+
+        const userData = { fullName, email, password };
+
+        try {
+            await AsyncStorage.setItem('@user_data', JSON.stringify(userData));  // Salva no AsyncStorage
+            Alert.alert("Sucesso", "Cadastro realizado com sucesso!", [
+                { text: "OK", onPress: () => navigation.navigate("SignIn") } // Navega para SignIn após OK
+            ]);
+        } catch (error) {
+            Alert.alert("Erro", "Não foi possível salvar os dados.");
+            console.log(error);
+        }
+    };
 
     return (
         <View style={styles.container}>
-
             <Animatable.View animation="fadeInLeft" delay={500} style={styles.containerHeader}>
                 <Text style={styles.message}>Crie sua conta</Text>
             </Animatable.View>
@@ -19,6 +48,8 @@ export default function Register() {
                     placeholder="Digite seu nome completo"
                     style={styles.input}
                     placeholderTextColor="#ccc"
+                    value={fullName}
+                    onChangeText={setFullName}
                 />
 
                 <Text style={styles.title}>E-mail</Text>
@@ -26,6 +57,10 @@ export default function Register() {
                     placeholder="Digite seu e-mail"
                     style={styles.input}
                     placeholderTextColor="#ccc"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={setEmail}
                 />
 
                 <Text style={styles.title}>Senha</Text>
@@ -34,6 +69,8 @@ export default function Register() {
                     style={styles.input}
                     secureTextEntry
                     placeholderTextColor="#ccc"
+                    value={password}
+                    onChangeText={setPassword}
                 />
 
                 <Text style={styles.title}>Confirmar senha</Text>
@@ -42,18 +79,18 @@ export default function Register() {
                     style={styles.input}
                     secureTextEntry
                     placeholderTextColor="#ccc"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
                 />
 
-                <TouchableOpacity style={styles.button}>
+                <TouchableOpacity style={styles.button} onPress={handleRegister}>
                     <Text style={styles.buttonText}>Cadastrar</Text>
                 </TouchableOpacity>
 
-                {/* ✅ Botão para voltar para a tela Welcome */}
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate("Welcome")}>
                     <Text style={styles.backButtonText}>Voltar para o início</Text>
                 </TouchableOpacity>
             </Animatable.View>
-
         </View>
     );
 }

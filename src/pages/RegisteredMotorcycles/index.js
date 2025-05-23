@@ -1,15 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import * as Animatable from 'react-native-animatable';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 export default function RegisteredMotorcycles() {
   const navigation = useNavigation();
-
-  const motorcycles = [
+  const route = useRoute();
+  const [motorcycles, setMotorcycles] = useState([
     { id: "1", rfid: "123456789", placa: "ABC-1234", chassi: "XYZ987654321", filial: "São Paulo", status: "Ativa", portal: "Portal A" },
     { id: "2", rfid: "987654321", placa: "DEF-5678", chassi: "ABC123456789", filial: "Rio de Janeiro", status: "Inativa", portal: "Portal B" },
-  ];
+  ]);
+
+  // Se houver nova moto, adiciona ao estado
+  useEffect(() => {
+    if (route.params?.newMotorcycle) {
+      setMotorcycles(prev => [route.params.newMotorcycle, ...prev]);
+    }
+  }, [route.params?.newMotorcycle]);
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
@@ -25,7 +32,7 @@ export default function RegisteredMotorcycles() {
   return (
     <View style={styles.container}>
       <View style={styles.containerLogo}>
-        {/* Pode colocar uma imagem aqui se quiser */}
+        {/* Pode adicionar uma imagem/logo aqui */}
       </View>
 
       <Animatable.View animation="fadeInUp" delay={500} style={styles.containerForm}>
@@ -96,7 +103,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     marginTop: 10,
-    marginBottom: 55, // espaço inferior para o botão não ficar colado
+    marginBottom: 55,
     alignItems: "center",
   },
   buttonText: {

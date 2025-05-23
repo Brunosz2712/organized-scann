@@ -1,62 +1,65 @@
-import React from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
 import * as Animatable from 'react-native-animatable';
 import { useNavigation } from '@react-navigation/native';
 
 export default function RegisterMotorcycle() {
     const navigation = useNavigation();
 
+    const [rfid, setRfid] = useState('');
+    const [placa, setPlaca] = useState('');
+    const [chassi, setChassi] = useState('');
+    const [filial, setFilial] = useState('');
+    const [status, setStatus] = useState('');
+    const [portal, setPortal] = useState('');
+
+    function handleRegister() {
+        if (!rfid || !placa || !chassi || !filial || !status || !portal) {
+            Alert.alert("Erro", "Por favor, preencha todos os campos.");
+            return;
+        }
+
+        const newMotorcycle = {
+            id: String(Date.now()),
+            rfid,
+            placa,
+            chassi,
+            filial,
+            status,
+            portal
+        };
+
+        navigation.navigate('RegisteredMotorcycles', { newMotorcycle });
+    }
+
     return (
         <View style={styles.container}>
-
             <Animatable.View animation="fadeInLeft" delay={500} style={styles.containerHeader}>
                 <Text style={styles.message}>Cadastrar Motocicleta</Text>
             </Animatable.View>
 
             <Animatable.View animation="fadeInUp" style={styles.containerForm}>
-                <Text style={styles.title}>RFID</Text>
-                <TextInput
-                    placeholder="Digite o RFID"
-                    style={styles.input}
-                    placeholderTextColor="#ccc"
-                />
+                {[ // campos de entrada
+                    { label: "RFID", value: rfid, setter: setRfid },
+                    { label: "Placa", value: placa, setter: setPlaca },
+                    { label: "Chassi", value: chassi, setter: setChassi },
+                    { label: "Filial", value: filial, setter: setFilial },
+                    { label: "Status", value: status, setter: setStatus },
+                    { label: "Portal", value: portal, setter: setPortal },
+                ].map((field, idx) => (
+                    <React.Fragment key={idx}>
+                        <Text style={styles.title}>{field.label}</Text>
+                        <TextInput
+                            placeholder={`Digite o ${field.label.toLowerCase()}`}
+                            style={styles.input}
+                            placeholderTextColor="#ccc"
+                            value={field.value}
+                            onChangeText={field.setter}
+                        />
+                    </React.Fragment>
+                ))}
 
-                <Text style={styles.title}>Placa</Text>
-                <TextInput
-                    placeholder="Digite a placa"
-                    style={styles.input}
-                    placeholderTextColor="#ccc"
-                />
-
-                <Text style={styles.title}>Chassi</Text>
-                <TextInput
-                    placeholder="Digite o chassi"
-                    style={styles.input}
-                    placeholderTextColor="#ccc"
-                />
-
-                <Text style={styles.title}>Filial</Text>
-                <TextInput
-                    placeholder="Digite a filial"
-                    style={styles.input}
-                    placeholderTextColor="#ccc"
-                />
-
-                <Text style={styles.title}>Status</Text>
-                <TextInput
-                    placeholder="Digite o status"
-                    style={styles.input}
-                    placeholderTextColor="#ccc"
-                />
-
-                <Text style={styles.title}>Portal</Text>
-                <TextInput
-                    placeholder="Digite o portal"
-                    style={styles.input}
-                    placeholderTextColor="#ccc"
-                />
-
-                <TouchableOpacity style={styles.button}>
+                <TouchableOpacity style={styles.button} onPress={handleRegister}>
                     <Text style={styles.buttonText}>Cadastrar Moto</Text>
                 </TouchableOpacity>
 
@@ -64,7 +67,6 @@ export default function RegisterMotorcycle() {
                     <Text style={styles.backButtonText}>Voltar</Text>
                 </TouchableOpacity>
             </Animatable.View>
-
         </View>
     );
 }
@@ -128,3 +130,4 @@ const styles = StyleSheet.create({
         textDecorationLine: "underline"
     }
 });
+
