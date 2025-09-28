@@ -65,3 +65,34 @@ Permite **login/cadastro**, **cadastrar/listar motos**, **simular leitura de RFI
 > Mantido seu padrão atual: **novas** pastas com **inicial maiúscula**.  
 > A pasta de telas permanece `src/pages` (minúsculo), com `Storage` **dentro** de `pages`.
 
+
+---
+
+## Tecnologias
+- **React Native** (Expo)
+- **React Navigation**
+- **AsyncStorage**
+- **React Hooks**
+
+---
+
+## Como executar
+
+### Pré-requisitos
+- Node.js  
+- npm ou yarn  
+- Expo Go (dispositivo) ou emulador
+
+### Passos
+```bash
+# instalar dependências
+npm install
+# (se faltar)
+npm i @react-native-async-storage/async-storage
+
+# configurar a API
+# edite src/Config/env.js e ajuste:
+# export const API_BASE_URL = "http://SEU_IP:PORTA";
+
+# iniciar (limpando cache)
+npx expo start -c
