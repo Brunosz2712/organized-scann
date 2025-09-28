@@ -2,20 +2,25 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import * as Animatable from 'react-native-animatable';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { loadMotorcycles, saveMotorcycles } from "../Storage/motorcycles";
 
 export default function RegisteredMotorcycles() {
   const navigation = useNavigation();
   const route = useRoute();
-  const [motorcycles, setMotorcycles] = useState([
-    { id: "1", rfid: "123456789", placa: "ABC-1234", chassi: "XYZ987654321", filial: "São Paulo", status: "Ativa", portal: "Portal A" },
-    { id: "2", rfid: "987654321", placa: "DEF-5678", chassi: "ABC123456789", filial: "Rio de Janeiro", status: "Inativa", portal: "Portal B" },
-  ]);
+  const [motorcycles, setMotorcycles] = useState([]);
 
-  // Se houver nova moto, adiciona ao estado
+  useEffect(() => {
+    loadMotorcycles().then(setMotorcycles);
+  }, []);
+
   useEffect(() => {
     if (route.params?.newMotorcycle) {
-      setMotorcycles(prev => [route.params.newMotorcycle, ...prev]);
+      const updated = [route.params.newMotorcycle, ...motorcycles];
+      setMotorcycles(updated);
+      saveMotorcycles(updated);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params?.newMotorcycle]);
 
   const renderItem = ({ item }) => (
@@ -30,85 +35,57 @@ export default function RegisteredMotorcycles() {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.containerLogo}>
-        {/* Pode adicionar uma imagem/logo aqui */}
-      </View>
-
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.containerLogo} />
       <Animatable.View animation="fadeInUp" delay={500} style={styles.containerForm}>
         <Text style={styles.title}>Motocicletas Cadastradas</Text>
 
         <FlatList
           data={motorcycles}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 80 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          ListEmptyComponent={<Text style={styles.empty}>Nenhum cadastro ainda.</Text>}
         />
 
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate('Welcome')}
-        >
-          <Text style={styles.buttonText}>Voltar para o início</Text>
+        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('RegisterMotorcycle')}>
+          <Text style={styles.buttonText}>Cadastrar nova motocicleta</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
       </Animatable.View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#161616",
-  },
-  containerLogo: {
-    flex: 1,
-    backgroundColor: "#161616",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1, backgroundColor: "#161616" },
+  containerLogo: { flex: 1, backgroundColor: "#161616" },
   containerForm: {
     flex: 2,
     backgroundColor: "#268B7D",
-    borderTopStartRadius: 25,
-    borderTopEndRadius: 25,
-    paddingHorizontal: "5%",
-    paddingTop: 20,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    paddingStart: '5%',
+    paddingEnd: '5%',
+    paddingTop: 24
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  card: {
-    backgroundColor: "#1E5F55",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 5,
-  },
-  cardText: {
-    color: "#fff",
-    marginBottom: 2,
-  },
+  title: { color: "#fff", fontSize: 24, fontWeight: "bold", marginBottom: 10 },
+  empty: { color: "#fff", opacity: 0.85, marginTop: 10 },
+  card: { backgroundColor: "#fff", borderRadius: 10, padding: 12, marginTop: 10 },
+  cardTitle: { color: "#268B7D", fontWeight: "bold", fontSize: 16, marginBottom: 4 },
+  cardText: { color: "#333" },
   button: {
     backgroundColor: "#fff",
     borderRadius: 10,
     padding: 12,
     marginTop: 10,
-    marginBottom: 55,
-    alignItems: "center",
+    marginBottom: 16,
+    alignItems: "center"
   },
-  buttonText: {
-    color: "#268B7D",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
+  buttonText: { color: "#268B7D", fontWeight: "bold", fontSize: 16 },
+  backButton: { alignItems: "center", marginBottom: 8 },
+  backButtonText: { color: "#fff", textDecorationLine: "underline", fontSize: 16 },
 });
