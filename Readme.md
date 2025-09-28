@@ -1,59 +1,67 @@
-# Organized Scann - Aplicativo Mobile
+# Organized Scann — Aplicativo Mobile (React Native + Expo)
 
 ## Integrantes
-- Nome Completo: Bruno Da Silva Souza RM: 94346
-- Nome Completo: Julio Samuel de Oliveira RM: 557453
-- Nome Completo: Leonardo Da Silva Pereira RM: 557598
+- **Bruno Da Silva Souza** — RM: **94346**
+- **Julio Samuel de Oliveira** — RM: **557453**
+- **Leonardo Da Silva Pereira** — RM: **557598**
+
+---
 
 ## Descrição do Projeto
-O Organized Scann é um aplicativo móvel para gerenciamento de motos e controle de acesso via RFID. O sistema permite cadastrar motos, visualizar registros, escanear tags RFID e gerenciar portais de acesso.
+Aplicativo para **gerenciamento de motos** e **controle de acesso** via RFID.  
+Permite **login/cadastro**, **cadastrar/listar motos**, **simular leitura de RFID** e **gerenciar portais**. Persistência local com `AsyncStorage` e integração preparada para **API (Java/.NET)**.
+
+---
 
 ## Funcionalidades
+- **Tela de Login** (e Cadastro) com validação, erros e loading
+- **Listagem de Motos** (com fallback local via `AsyncStorage`)
+- **Cadastro de Motos** (formulário validado)
+- **Scanner RFID** (simulado) com busca por RFID
+- **Listagem de Portais** (dados locais)
+- **Tema** Dark/Light (dark como padrão, sem alterar sua identidade visual)
 
-### 1. Tela de Login
-- Interface de autenticação com campos de usuário e senha
-- Armazenamento do nome de usuário com AsyncStorage para persistência
+---
 
-### 2. Listagem de Motos
-- Visualização de todas as motos cadastradas
-- Exibição de placa, RFID e status de cada moto
-- Dados persistentes com AsyncStorage
+## Boas práticas
+- **Safe Area / KeyboardAvoiding** em telas com formulário  
+- **Arquitetura** com `Services` / `Context` / `Theme` / `Components` / `Config` (pastas com **inicial maiúscula**)  
+- **Código limpo e organizado**
 
-### 3. Cadastro de Motos
-- Formulário completo para adicionar novas motos
-- Campos para RFID, placa, marca, modelo, ano e cor
-- Validação de campos obrigatórios
+---
 
-### 4. Scanner RFID
-- Simulação de leitura de tags RFID
-- Busca automática de informações da moto pelo código RFID
-- Opção para atualizar status ou cadastrar nova moto
+## Requisitos da 3ª Sprint — Como atendemos
 
-### 5. Listagem de Portais
-- Visualização dos portais disponíveis
-- Exibição do status de manutenção e operacional
-- Dados armazenados com AsyncStorage
+### 1) Telas funcionais integradas com API (30 pts)
+- **Duas funcionalidades completas**:
+  - **Autenticação**: login/cadastro/logout
+  - **Motocicletas**: Create/Read/Delete (+ hooks para Update)
+- **Validações e feedback** em formulários (erros + `ActivityIndicator`)
+- **Loading** em chamadas de rede (login/cadastro/listagem/exclusão)
 
-## Requisitos Atendidos
-- ✅ Navegação entre telas (React Navigation)
-- ✅ 5 rotas navegáveis: Login, ListagemMotos, CadastroMotos, ScannerRFID, ListagemPortais
-- ✅ Protótipo visual funcional com layout coerente em dark mode
-- ✅ Formulário com manipulação de estado (useState)
-- ✅ Armazenamento local com AsyncStorage
-- ✅ Código organizado e documentado
+### 2) Sistema de Login (20 pts)
+- Telas de **Login** e **Cadastro** com validação  
+- **Logout** funcional  
+- **Persistência de sessão** com `AsyncStorage`  
+- Integração preparada com **API** (endpoints configuráveis)
 
-## Tecnologias Utilizadas
-- React Native
-- Expo
-- React Navigation
-- AsyncStorage
-- React Hooks
+### 3) Estilização com Tema
+- Suporte a **Dark/Light** (sem mudar identidade visual existente)  
+- Manutenção das **cores e tipografia atuais**
 
-## Como Executar o Projeto
+### 4) Arquitetura de Código (15 pts)
+- **Separação de responsabilidades**:
+  - `pages` (telas), `Services` (API), `Context` (auth), `Theme` (tema), `Components` (UI reutilizável), `Config` (env)
+- **Padrão de pastas com inicial maiúscula** (para os novos módulos)
+- **Código padronizado e legível**
 
-### Pré-requisitos
-- Node.js (https://nodejs.org/)
-- npm ou yarn
-- Expo CLI (caso não tenha, instale globalmente com o comando abaixo):
-```bash
-npm install -g expo-cli
+### 5) Documentação e Apresentação (10 pts)
+- Este **README** inclui proposta, funcionalidades, estrutura de pastas, execução e integrantes  
+- **Vídeo**: adicionar link na seção abaixo
+
+---
+
+## Estrutura de Pastas
+> Mantido seu padrão atual: **novas** pastas com **inicial maiúscula**.  
+> A pasta de telas permanece `src/pages` (minúsculo), com `Storage` **dentro** de `pages`.
+
