@@ -33,6 +33,13 @@ export function AuthProvider({ children }) {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(res));
   };
 
+  // >>> login local (sem API), usado pelo SignIn quando não for usar a API
+  const signInLocal = async ({ name, email }) => {
+    const res = { user: { name, email }, token: "local" };
+    setUser(res.user); setToken(res.token);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(res));
+  };
+
   const signUp = async (name, email, password) => {
     const res = await registerService({ name, email, password });
     setUser(res.user); setToken(res.token);
@@ -46,6 +53,6 @@ export function AuthProvider({ children }) {
     await AsyncStorage.removeItem(STORAGE_KEY);
   };
 
-  const value = useMemo(() => ({ user, token, loading, signIn, signUp, signOut }), [user, token, loading]);
+  const value = useMemo(() => ({ user, token, loading, signIn, signInLocal, signUp, signOut }), [user, token, loading]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

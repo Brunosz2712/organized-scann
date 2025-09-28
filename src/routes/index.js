@@ -1,41 +1,33 @@
+import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useAuth } from '../Context/AuthContext';
+
+// Telas
 import Welcome from '../pages/Welcome';
-import Login from '../pages/SignIn';
+import SignIn from '../pages/SignIn';
 import Register from '../pages/Register';
-import RegisterMotorcycle from '../pages/RegisterMotorcycle'; // ✅ Importa o novo componente
-import RegisteredMotorcycles from '../pages/RegisteredMotorcycles'; // ✅ Importa a tela das motos cadastradas
+import RegisteredMotorcycles from '../pages/RegisteredMotorcycles';
+import RegisterMotorcycle from '../pages/RegisterMotorcycle';
 
 const Stack = createNativeStackNavigator();
 
 export default function Routes() {
-    return (
-        <Stack.Navigator>
-            <Stack.Screen
-                name="Welcome"
-                component={Welcome}
-                options={{ headerShown: false }}
-            />
-            <Stack.Screen
-                name="SignIn"
-                component={Login}
-                options={{ headerShown: false }}
-            />
-            <Stack.Screen
-                name="Register"
-                component={Register}
-                options={{ headerShown: false }}
-            />
-            <Stack.Screen
-                name="RegisterMotorcycle"
-                component={RegisterMotorcycle}
-                options={{ headerShown: false }}
-            />
-            <Stack.Screen
-                name="RegisteredMotorcycles"  // ✅ Adiciona a tela para motos cadastradas
-                component={RegisteredMotorcycles}
-                options={{ headerShown: false }}
-            />
-        </Stack.Navigator>
-    );
+  const { user } = useAuth?.() || { user: null };
+
+  return (
+    <Stack.Navigator
+      // Se tiver user, abre na lista; senão, no Welcome
+      initialRouteName={user ? 'RegisteredMotorcycles' : 'Welcome'}
+      screenOptions={{ headerShown: false }}
+    >
+      {/* Público */}
+      <Stack.Screen name="Welcome" component={Welcome} />
+      <Stack.Screen name="SignIn" component={SignIn} />
+      <Stack.Screen name="Register" component={Register} />
+
+      {/* Privado (mas registrado SEMPRE) */}
+      <Stack.Screen name="RegisteredMotorcycles" component={RegisteredMotorcycles} />
+      <Stack.Screen name="RegisterMotorcycle" component={RegisterMotorcycle} />
+    </Stack.Navigator>
+  );
 }
-//

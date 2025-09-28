@@ -1,131 +1,149 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Text, StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
 import * as Animatable from 'react-native-animatable';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from "../../Context/AuthContext";
-import { listMotorcycles, deleteMotorcycle } from "../../Services/motorcyclesService";
-import { loadMotorcycles, saveMotorcycles } from "../Storage/motorcycles.js";
 
-export default function RegisteredMotorcycles() {
+import { useAuth } from "../../Context/AuthContext";
+import { createMotorcycle, updateMotorcycle } from "../../Services/motorcyclesService";
+import { addMotorcycle, loadMotorcycles, saveMotorcycles } from "../Storage/motorcycles.js";
+import RequireAuth from "../../Components/RequireAuth";
+
+export default function RegisterMotorcycle() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { token, signOut } = useAuth?.() || { token: null, signOut: () => {} };
+  const { token } = useAuth?.() || { token: null };
 
-  const [motorcycles, setMotorcycles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingAction, setLoadingAction] = useState(false);
+  const existing = route.params?.existing || null;
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      if (token) {
-        const data = await listMotorcycles(token, { pageNumber: 1, pageSize: 100 });
-        setMotorcycles(data || []);
-        await saveMotorcycles(data || []);
-      } else {
-        const local = await loadMotorcycles();
-        setMotorcycles(local);
-      }
-    } catch {
-      const local = await loadMotorcycles();
-      setMotorcycles(local);
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const [rfid, setRfid] = useState('');
+  const [placa, setPlaca] = useState('');
+  const [chassi, setChassi] = useState('');
+  const [filial, setFilial] = useState('');
+  const [status, setStatus] = useState('');
+  const [portal, setPortal] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (route.params?.newMotorcycle) {
-      const updated = [route.params.newMotorcycle, ...motorcycles];
-      setMotorcycles(updated);
-      saveMotorcycles(updated);
+    if (existing) {
+      setRfid(existing.rfid || "");
+      setPlaca(existing.placa || "");
+      setChassi(existing.chassi || "");
+      setFilial(existing.filial || "");
+      setStatus(existing.status || "");
+      setPortal(String(existing.portal || ""));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route.params?.newMotorcycle]);
+  }, [existing]);
 
-  async function handleDelete(item) {
-    if (!token) {
-      Alert.alert("Atenção", "Exclusão via API requer estar logado.");
+  async function handleSubmit() {
+    setError("");
+    if (!rfid.trim() || !placa.trim()) {
+      setError("Preencha ao menos RFID e Placa.");
       return;
     }
-    setLoadingAction(true);
+
+    const payload = {
+      rfid: rfid.trim(),
+      placa: placa.trim(),
+      chassi: chassi.trim(),
+      filial: filial.trim(),
+      status: status.trim(),
+      portal: portal.trim(), // service gera portalId automático
+    };
+
+    setSubmitting(true);
     try {
-      await deleteMotorcycle(item.id, token);
-      const updated = motorcycles.filter(m => m.id !== item.id);
-      setMotorcycles(updated);
-      await saveMotorcycles(updated);
+      if (existing) {
+        if (token) {
+          const updated = await updateMotorcycle(existing.id, payload, token);
+          Alert.alert('Sucesso', 'Motocicleta atualizada (API)!');
+          navigation.navigate('RegisteredMotorcycles', { updatedMotorcycle: updated });
+        } else {
+          const list = await loadMotorcycles();
+          const updated = { ...existing, ...payload };
+          const newList = list.map(m => String(m.id) === String(existing.id) ? updated : m);
+          await saveMotorcycles(newList);
+          Alert.alert('Sucesso', 'Motocicleta atualizada (local)!');
+          navigation.navigate('RegisteredMotorcycles', { updatedMotorcycle: updated });
+        }
+      } else {
+        if (token) {
+          const created = await createMotorcycle(payload, token);
+          Alert.alert('Sucesso', 'Motocicleta cadastrada (API)!');
+          navigation.navigate('RegisteredMotorcycles', { newMotorcycle: created });
+        } else {
+          const local = { ...payload, id: Date.now().toString() };
+          await addMotorcycle(local);
+          Alert.alert('Sucesso', 'Motocicleta cadastrada (local)!');
+          navigation.navigate('RegisteredMotorcycles', { newMotorcycle: local });
+        }
+      }
     } catch (e) {
-      Alert.alert("Erro", e.message || "Não foi possível excluir.");
+      setError(e.message || "Erro ao salvar.");
     } finally {
-      setLoadingAction(false);
+      setSubmitting(false);
     }
   }
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>Placa: {item.placa}</Text>
-      <Text style={styles.cardText}>RFID: {item.rfid}</Text>
-      {!!item.portal && <Text style={styles.cardText}>Portal: {String(item.portal)}</Text>}
-      {!!item.status && <Text style={styles.cardText}>Status: {item.status}</Text>}
-      {!!item.entryDate && <Text style={styles.cardText}>Entrada: {String(item.entryDate).slice(0,10)}</Text>}
-      {!!item.availabilityForecast && <Text style={styles.cardText}>Prev. Liberação: {String(item.availabilityForecast).slice(0,10)}</Text>}
-
-      {token && (
-        <TouchableOpacity style={[styles.button, { marginTop: 8 }]} onPress={() => handleDelete(item)}>
-          <Text style={styles.buttonText}>Excluir (API)</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <View style={styles.containerLogo} />
-      <Animatable.View animation="fadeInUp" delay={500} style={styles.containerForm}>
-        <Text style={styles.title}>Motocicletas Cadastradas</Text>
-
-        {loading ? (
-          <ActivityIndicator style={{ marginTop: 12 }} />
-        ) : (
-          <FlatList
-            data={motorcycles}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 24 }}
-            ListEmptyComponent={<Text style={styles.empty}>Nenhum cadastro ainda.</Text>}
-          />
-        )}
-
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('RegisterMotorcycle')}>
-          <Text style={styles.buttonText}>Cadastrar nova motocicleta</Text>
-        </TouchableOpacity>
-
-        {token ? (
-          <TouchableOpacity style={[styles.button, { marginTop: 8 }]} onPress={signOut} disabled={loadingAction}>
-            {loadingAction ? <ActivityIndicator /> : <Text style={styles.buttonText}>Logout</Text>}
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('SignIn')}>
-            <Text style={styles.backButtonText}>Fazer login</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>Voltar</Text>
-        </TouchableOpacity>
+      <Animatable.View animation="fadeInLeft" delay={500} style={styles.containerHeader}>
+        <Text style={styles.message}>{existing ? "Editar Motocicleta" : "Cadastrar Motocicleta"}</Text>
       </Animatable.View>
+
+      {/* BLOQUEIO TOTAL se não estiver logado */}
+      <RequireAuth redirectTo="RegisterMotorcycle">
+        <Animatable.View animation="fadeInUp" style={styles.containerForm}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+              {[
+                { label: "RFID", value: rfid, setter: setRfid, placeholder: "Digite o rfid" },
+                { label: "Placa", value: placa, setter: setPlaca, placeholder: "Digite a placa" },
+                { label: "Chassi", value: chassi, setter: setChassi, placeholder: "Digite o chassi" },
+                { label: "Filial (opcional)", value: filial, setter: setFilial, placeholder: "Digite a filial" },
+                { label: "Status/Problema", value: status, setter: setStatus, placeholder: "Descreva o status" },
+                { label: "Portal (nome, para cores)", value: portal, setter: setPortal, placeholder: "Ex.: 1 / Azul / A" },
+              ].map((field, idx) => (
+                <React.Fragment key={idx}>
+                  <Text style={styles.title}>{field.label}</Text>
+                  <TextInput
+                    placeholder={field.placeholder}
+                    style={styles.input}
+                    placeholderTextColor="#ccc"
+                    value={field.value}
+                    onChangeText={field.setter}
+                  />
+                </React.Fragment>
+              ))}
+
+              {!!error && <Text style={{ color: "#ffdddd", marginTop: 8 }}>{error}</Text>}
+
+              <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={submitting}>
+                {submitting ? <ActivityIndicator /> : <Text style={styles.buttonText}>{existing ? "Salvar Alterações" : "Cadastrar Moto"}</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                <Text style={styles.backButtonText}>Voltar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Welcome')}>
+                <Text style={styles.backButtonText}>Ir para o Início</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </Animatable.View>
+      </RequireAuth>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#161616" },
-  containerLogo: { flex: 1, backgroundColor: "#161616" },
+  containerHeader: { marginTop: '25%', marginBottom: '8%', paddingStart: '5%' },
+  message: { fontSize: 28, fontWeight: "bold", color: "#fff" },
   containerForm: {
-    flex: 2,
+    flex: 1,
     backgroundColor: "#268B7D",
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
@@ -133,20 +151,24 @@ const styles = StyleSheet.create({
     paddingEnd: '5%',
     paddingTop: 24
   },
-  title: { color: "#fff", fontSize: 24, fontWeight: "bold", marginBottom: 10 },
-  empty: { color: "#fff", opacity: 0.85, marginTop: 10 },
-  card: { backgroundColor: "#fff", borderRadius: 10, padding: 12, marginTop: 10 },
-  cardTitle: { color: "#268B7D", fontWeight: "bold", fontSize: 16, marginBottom: 4 },
-  cardText: { color: "#333" },
-  button: {
+  title: { color: "#fff", fontSize: 20, marginTop: 20 },
+  input: {
     backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 12,
-    marginTop: 10,
-    marginBottom: 8,
+    width: "100%",
+    borderRadius: 4,
+    paddingHorizontal: 10,
+    height: 40,
+    marginTop: 8
+  },
+  button: {
+    backgroundColor: "#1E5F55",
+    width: "100%",
+    borderRadius: 4,
+    paddingVertical: 10,
+    marginTop: 20,
     alignItems: "center"
   },
-  buttonText: { color: "#268B7D", fontWeight: "bold", fontSize: 16 },
-  backButton: { alignItems: "center", marginBottom: 8 },
-  backButtonText: { color: "#fff", textDecorationLine: "underline", fontSize: 16 },
+  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  backButton: { marginTop: 15, alignItems: "center" },
+  backButtonText: { color: "#fff", fontSize: 16, textDecorationLine: "underline" }
 });

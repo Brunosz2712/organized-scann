@@ -1,54 +1,58 @@
 import { apiRequest } from "./api";
 
-// Controller .NET: [Route("api/motorcycles")]
 const PREFIX = "/api/motorcycles";
 
-// LISTA (retorna DTO com { LicensePlate, Rfid, PortalName, ProblemDescription, EntryDate, AvailabilityForecast })
+// LIST
 export async function listMotorcycles(token, { pageNumber = 1, pageSize = 50 } = {}) {
   const resp = await apiRequest(`${PREFIX}?PageNumber=${pageNumber}&PageSize=${pageSize}`, { token });
-  // o controller usa HateoasResponse<PaginatedResponse<T>>
-  const data = resp?.data || resp?.Data || {};
-  const items = data.items || data.Items || [];
-  return items.map(mapFromApi);
+  // resp pode ser paginado (Items/items) ou lista direta
+  const data = resp?.items || resp?.Items || resp || [];
+  return (Array.isArray(data) ? data : []).map(mapFromApi);
 }
 
-// CRIA (backend exige: LicensePlate, Rfid, PortalId (>0), EntryDate <= AvailabilityForecast, ProblemDescription opcional)
+// CREATE
 export async function createMotorcycle(payload, token) {
   const body = mapToApi(payload);
   const created = await apiRequest(`${PREFIX}`, { method: "POST", body, token });
-  // alguns endpoints devolvem a entidade; outros podem devolver DTO
-  return mapFromApi(created);
+  // Alguns backends retornam DTO direto; outros aninham.
+  const entity = created?.data || created?.Data || created;
+  return mapFromApi(entity);
 }
 
+// UPDATE
 export async function updateMotorcycle(id, payload, token) {
   const body = mapToApi(payload);
   const updated = await apiRequest(`${PREFIX}/${id}`, { method: "PUT", body, token });
-  return mapFromApi(updated);
+  const entity = updated?.data || updated?.Data || updated;
+  return mapFromApi(entity);
 }
 
+// DELETE
 export async function deleteMotorcycle(id, token) {
   await apiRequest(`${PREFIX}/${id}`, { method: "DELETE", token });
   return true;
 }
 
-/* =========================
-   MAPS (App <-> API)
-   ========================= */
+/* ========= Maps ========= */
 
-// O App usa { id, placa, rfid, chassi, filial, status, portal }
-// A API usa { Id, LicensePlate, Rfid, ProblemDescription, PortalId, EntryDate, AvailabilityForecast, Brand?, Year? }
+// App: { id, placa, rfid, chassi, filial, status, portal }
+// API: { Id, LicensePlate, Rfid, ProblemDescription, PortalId, EntryDate, AvailabilityForecast, ... }
 
 function mapToApi(app) {
   const now = new Date();
   const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const portalId = parseInt(app.portal || app.filial || "1", 10);
+  // Se portal estiver vazio, usa 1 por padrão (ou derive de filial)
+  const portalIdRaw = app.portal || app.filial || "1";
+  const parsed = parseInt(portalIdRaw, 10);
+  const portalId = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+
   return {
     id: app.id ? Number(app.id) : undefined,
     licensePlate: app.placa || app.LicensePlate,
     rfid: app.rfid || app.Rfid,
     problemDescription: app.status || app.ProblemDescription || "",
-    portalId: Number.isFinite(portalId) && portalId > 0 ? portalId : 1,
+    portalId,
     entryDate: app.entryDate || app.EntryDate || now.toISOString(),
     availabilityForecast: app.availabilityForecast || app.AvailabilityForecast || in7.toISOString(),
     brand: app.brand || app.Brand || null,

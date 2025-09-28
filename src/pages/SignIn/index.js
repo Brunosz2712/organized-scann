@@ -1,153 +1,138 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import * as Animatable from 'react-native-animatable';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from "../../Context/AuthContext";
 
-export default function SignIn({ navigation }) {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+const USERS_KEY = '@users';
 
-    const handleLogin = async () => {
-        try {
-            const storedUser = await AsyncStorage.getItem('@user_data');
+export default function SignIn() {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const redirectTo = route.params?.redirectTo || null;   // "RegisterMotorcycle" | "RegisteredMotorcycles"
+  const prefillEmail = route.params?.prefillEmail || "";
 
-            if (!storedUser) {
-                Alert.alert('Erro', 'Nenhum usuário cadastrado!');
-                return;
-            }
+  const { signIn, signInLocal } = useAuth?.() || {};
+  const [email, setEmail] = useState(prefillEmail);
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-            const userData = JSON.parse(storedUser);
+  function normalize(s) { return String(s || "").trim().toLowerCase(); }
 
-            if (email === userData.email && password === userData.password) {
-                Alert.alert('Sucesso', 'Login realizado com sucesso!');
-                navigation.navigate('RegisterMotorcycle'); // Redireciona após login
-            } else {
-                Alert.alert('Erro', 'E-mail ou senha inválidos!');
-            }
-        } catch (error) {
-            Alert.alert('Erro', 'Erro ao tentar fazer login.');
-            console.log(error);
-        }
-    };
+  async function handleSignIn() {
+    if (!email || !password) {
+      Alert.alert("Atenção", "Informe e-mail e senha.");
+      return;
+    }
+    setLoading(true);
 
-    return (
-        <View style={styles.container}>
+    // 1) Tenta API (se estiver configurada)
+    if (typeof signIn === "function") {
+      try {
+        await signIn(email, password);
+        setLoading(false);
+        // vai para o alvo desejado, senão Welcome
+        navigation.reset({ index: 0, routes: [{ name: redirectTo || 'Welcome' }] });
+        return;
+      } catch (e) {
+        // cai para o login local
+      }
+    }
 
-            <Animatable.View animation="fadeInLeft" delay={500} style={styles.containerHeader}>
-                <Text style={styles.message}>Bem-Vindo(a)</Text>
-            </Animatable.View>
+    // 2) Fallback local (@users)
+    try {
+      const raw = await AsyncStorage.getItem(USERS_KEY);
+      const users = raw ? JSON.parse(raw) : [];
+      const existing = users.find(u => normalize(u.email) === normalize(email));
 
-            <Animatable.View animation="fadeInUp" style={styles.containerForm}>
-                <Text style={styles.title}>E-mail</Text>
-                <TextInput
-                    placeholder="Digite seu e-mail"
-                    style={styles.input}
-                    placeholderTextColor="#ccc"
-                    value={email}
-                    onChangeText={setEmail}
-                />
+      if (!existing) {
+        setLoading(false);
+        Alert.alert(
+          "Conta não encontrada",
+          "Você ainda não tem cadastro. Vamos criar agora?",
+          [{ text: "OK", onPress: () => navigation.navigate("Register", { prefillEmail: email, redirectTo }) }],
+          { cancelable: false }
+        );
+        return;
+      }
 
-                <Text style={styles.title}>Senha</Text>
-                <TextInput
-                    placeholder="Digite sua senha"
-                    style={styles.input}
-                    secureTextEntry
-                    placeholderTextColor="#ccc"
-                    value={password}
-                    onChangeText={setPassword}
-                />
+      if (existing.password !== password) {
+        setLoading(false);
+        Alert.alert("Erro", "Senha inválida.");
+        return;
+      }
 
-                <TouchableOpacity 
-                    style={styles.button}
-                    onPress={handleLogin}
-                >
-                    <Text style={styles.buttonText}>Acessar</Text>
-                </TouchableOpacity>
+      // autentica localmente no contexto
+      await signInLocal?.({ name: existing.fullName || existing.name || "Usuário", email: existing.email });
+      setLoading(false);
+      navigation.reset({ index: 0, routes: [{ name: redirectTo || 'Welcome' }] });
+    } catch (e) {
+      setLoading(false);
+      Alert.alert("Erro", "Não foi possível autenticar.");
+      console.log(e);
+    }
+  }
 
-                <TouchableOpacity 
-                    style={styles.buttonRegister}
-                    onPress={() => navigation.navigate('Register')}
-                >
-                    <Text style={styles.registerText}>Não possui uma conta? Cadastre-se</Text>
-                </TouchableOpacity>
+  return (
+    <View style={styles.container}>
+      <Animatable.View animation="fadeInLeft" delay={500} style={styles.containerHeader}>
+        <Text style={styles.message}>Bem-vindo(a)</Text>
+      </Animatable.View>
 
-                <TouchableOpacity 
-                    style={styles.backButton} 
-                    onPress={() => navigation.navigate('Welcome')}
-                >
-                    <Text style={styles.backButtonText}>Voltar para o início</Text>
-                </TouchableOpacity>
-            </Animatable.View>
+      <Animatable.View animation="fadeInUp" style={styles.containerForm}>
+        <Text style={styles.title}>E-mail</Text>
+        <TextInput
+          placeholder="Digite seu e-mail"
+          style={styles.input}
+          placeholderTextColor="#ccc"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+        />
 
-        </View>
-    );
+        <Text style={styles.title}>Senha</Text>
+        <TextInput
+          placeholder="Digite sua senha"
+          style={styles.input}
+          secureTextEntry
+          placeholderTextColor="#ccc"
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity style={styles.button} onPress={handleSignIn} disabled={loading}>
+          {loading ? <ActivityIndicator /> : <Text style={styles.buttonText}>Entrar</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate("Register")}>
+          <Text style={styles.backButtonText}>Criar uma conta</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate("Welcome")}>
+          <Text style={styles.backButtonText}>Voltar ao início</Text>
+        </TouchableOpacity>
+      </Animatable.View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#161616"
-    },
-    containerHeader: {
-        marginTop: '38%',
-        marginBottom: '8%',
-        paddingStart: '5%',
-    },
-    message: {
-        fontSize: 40,
-        fontWeight: 'bold',
-        color: '#fff'
-    },
-    containerForm: {
-        flex: 1,
-        backgroundColor: "#268B7D",
-        borderTopEndRadius: 25,
-        borderTopStartRadius: 25,
-        paddingStart: "5%",
-        paddingEnd: "5%",
-        paddingTop: 20,
-    },
-    title: {
-        fontSize: 20,
-        marginTop: 28,
-        color: "#fff",
-    },
-    input: {
-        borderBottomWidth: 1,
-        height: 40,
-        marginBottom: 12,
-        fontSize: 16,
-        color: "#fff"
-    },
-    button: {
-        backgroundColor: "#1E5F55",
-        width: "100%",
-        borderRadius: 4,
-        paddingVertical: 8,
-        marginTop: 14,
-        alignItems: "center"
-    },
-    buttonText: {
-        color: "#fff",
-        fontSize: 18,
-        fontWeight: "bold"
-    },
-    buttonRegister: {
-        marginTop: 14,
-        alignSelf: "center"
-    },
-    registerText: {
-        color: "#fff",
-        fontSize: 16,
-        textDecorationLine: "underline"
-    },
-    backButton: {
-        marginTop: 15,
-        alignItems: "center"
-    },
-    backButtonText: {
-        color: "#fff",
-        fontSize: 16,
-        textDecorationLine: "underline"
-    }
+  container: { flex: 1, backgroundColor: "#161616" },
+  containerHeader: { marginTop: '25%', marginBottom: '8%', paddingStart: '5%' },
+  message: { fontSize: 30, fontWeight: 'bold', color: '#fff' },
+  containerForm: {
+    flex: 1, backgroundColor: "#268B7D", borderTopEndRadius: 25, borderTopStartRadius: 25,
+    paddingStart: "5%", paddingEnd: "5%", paddingTop: 20,
+  },
+  title: { fontSize: 20, marginTop: 20, color: "#fff" },
+  input: { borderBottomWidth: 1, height: 40, marginBottom: 12, fontSize: 16, color: "#fff" },
+  button: {
+    backgroundColor: "#1E5F55", width: "100%", borderRadius: 4, paddingVertical: 10,
+    marginTop: 20, alignItems: "center"
+  },
+  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  backButton: { marginTop: 15, alignItems: "center" },
+  backButtonText: { color: "#fff", fontSize: 16, textDecorationLine: "underline" },
 });
