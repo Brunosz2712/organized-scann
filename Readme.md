@@ -70,4 +70,4 @@ npm i @react-native-async-storage/async-storage
 # export const API_BASE_URL = "http://SEU_IP:PORTA";
 
 # 4) iniciar (limpando cache)
-
+npx expo start -c
