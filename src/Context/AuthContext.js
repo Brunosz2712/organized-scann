@@ -8,8 +8,8 @@ export const useAuth = () => useContext(AuthContext);
 const STORAGE_KEY = "@organizedscann:auth";
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);   // { id, name, email }
-  const [token, setToken] = useState(null); // string JWT
+  const [user, setUser] = useState(null);   // { id, name, email, role }
+  const [token, setToken] = useState(null); // string
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,25 +29,19 @@ export function AuthProvider({ children }) {
 
   const signIn = async (email, password) => {
     const res = await loginService({ email, password });
-    const tok = res.token;
-    const usr = res.user || { id: res.id, name: res.name, email: res.email };
-    setUser(usr); setToken(tok);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ user: usr, token: tok }));
+    setUser(res.user); setToken(res.token);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(res));
   };
 
   const signUp = async (name, email, password) => {
     const res = await registerService({ name, email, password });
-    if (res.token) {
-      const tok = res.token;
-      const usr = res.user || { id: res.id, name: res.name, email: res.email };
-      setUser(usr); setToken(tok);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ user: usr, token: tok }));
-    }
+    setUser(res.user); setToken(res.token);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(res));
     return res;
   };
 
   const signOut = async () => {
-    try { await logoutService(token); } catch {}
+    try { await logoutService(); } catch {}
     setUser(null); setToken(null);
     await AsyncStorage.removeItem(STORAGE_KEY);
   };
