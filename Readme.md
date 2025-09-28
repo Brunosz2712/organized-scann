@@ -30,32 +30,7 @@ Permite **login/cadastro**, **cadastrar/listar motos**, **simular leitura de RFI
 
 ---
 
-## Requisitos da 3ª Sprint — Como atendemos
-
-### 1) Telas funcionais integradas com API (30 pts)
-- **Duas funcionalidades completas**:
-  - **Autenticação**: login/cadastro/logout
-  - **Motocicletas**: Create/Read/Delete (+ hooks para Update)
-- **Validações e feedback** em formulários (erros + `ActivityIndicator`)
-- **Loading** em chamadas de rede (login/cadastro/listagem/exclusão)
-
-### 2) Sistema de Login (20 pts)
-- Telas de **Login** e **Cadastro** com validação  
-- **Logout** funcional  
-- **Persistência de sessão** com `AsyncStorage`  
-- Integração preparada com **API** (endpoints configuráveis)
-
-### 3) Estilização com Tema
-- Suporte a **Dark/Light** (sem mudar identidade visual existente)  
-- Manutenção das **cores e tipografia atuais**
-
-### 4) Arquitetura de Código (15 pts)
-- **Separação de responsabilidades**:
-  - `pages` (telas), `Services` (API), `Context` (auth), `Theme` (tema), `Components` (UI reutilizável), `Config` (env)
-- **Padrão de pastas com inicial maiúscula** (para os novos módulos)
-- **Código padronizado e legível**
-
-### 5) Documentação e Apresentação (10 pts)
+### Documentação e Apresentação
 - Este **README** inclui proposta, funcionalidades, estrutura de pastas, execução e integrantes  
 - **Vídeo**: adicionar link na seção abaixo
 
