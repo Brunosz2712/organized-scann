@@ -42,26 +42,6 @@ Persistência local com `AsyncStorage` e integração preparada para **API (Java
 
 ---
 
-## 🛠 Tecnologias
-- **React Native** (Expo)
-- **React Navigation**
-- **AsyncStorage**
-- **React Hooks**
-
----
-
-## ▶️ Como executar
-
-### Pré-requisitos
-- Node.js  
-- npm ou yarn  
-- Expo Go (dispositivo físico) **ou** emulador
-
-### Passos
-```bash
-# 1) instalar dependências
-npm install
-
 # 2) (se faltar)
 npm i @react-native-async-storage/async-storage
 
