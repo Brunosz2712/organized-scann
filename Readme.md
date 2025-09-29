@@ -41,13 +41,3 @@ Persistência local com `AsyncStorage` e integração preparada para **API (Java
 - **Vídeo:** _adicione aqui o link da apresentação do app em funcionamento_
 
 ---
-
-# 2) (se faltar)
-npm i @react-native-async-storage/async-storage
-
-# 3) configurar a API
-# edite src/Config/env.js e ajuste:
-# export const API_BASE_URL = "http://SEU_IP:PORTA";
-
-# 4) iniciar (limpando cache)
-npx expo start -c
