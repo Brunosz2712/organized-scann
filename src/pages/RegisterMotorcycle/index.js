@@ -1,27 +1,32 @@
 import React, { useEffect, useState } from "react";
-import { Text, StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
-import * as Animatable from 'react-native-animatable';
+import {
+  Text, StyleSheet, TextInput, TouchableOpacity, Alert,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, View
+} from "react-native";
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useAuth } from "../../Context/AuthContext";
+import { useThemeOS } from "../../Theme/ThemeProvider";
+import ThemeToggle from "../../Components/ThemeToggle";
+
 import { createMotorcycle, updateMotorcycle } from "../../Services/motorcyclesService";
-import { addMotorcycle, loadMotorcycles, saveMotorcycles } from "../Storage/motorcycles.js";
-import RequireAuth from "../../Components/RequireAuth";
+import { logout as clearSession } from "../Storage/auth";
 
 export default function RegisterMotorcycle() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { token } = useAuth?.() || { token: null };
+  const { theme } = useThemeOS();
+  const styles = makeStyles(theme);
 
   const existing = route.params?.existing || null;
 
-  const [rfid, setRfid] = useState('');
-  const [placa, setPlaca] = useState('');
-  const [chassi, setChassi] = useState('');
-  const [filial, setFilial] = useState('');
-  const [status, setStatus] = useState('');
-  const [portal, setPortal] = useState('');
+  const [rfid, setRfid] = useState("");
+  const [placa, setPlaca] = useState("");
+  const [chassi, setChassi] = useState("");
+  const [filial, setFilial] = useState("");
+  const [status, setStatus] = useState("");
+  const [portal, setPortal] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -32,7 +37,7 @@ export default function RegisterMotorcycle() {
       setChassi(existing.chassi || "");
       setFilial(existing.filial || "");
       setStatus(existing.status || "");
-      setPortal(String(existing.portal || ""));
+      setPortal(existing.portal || "");
     }
   }, [existing]);
 
@@ -49,126 +54,105 @@ export default function RegisterMotorcycle() {
       chassi: chassi.trim(),
       filial: filial.trim(),
       status: status.trim(),
-      portal: portal.trim(), // service gera portalId automático
+      portal: portal.trim(),
     };
 
     setSubmitting(true);
     try {
       if (existing) {
-        if (token) {
-          const updated = await updateMotorcycle(existing.id, payload, token);
-          Alert.alert('Sucesso', 'Motocicleta atualizada (API)!');
-          navigation.navigate('RegisteredMotorcycles', { updatedMotorcycle: updated });
-        } else {
-          const list = await loadMotorcycles();
-          const updated = { ...existing, ...payload };
-          const newList = list.map(m => String(m.id) === String(existing.id) ? updated : m);
-          await saveMotorcycles(newList);
-          Alert.alert('Sucesso', 'Motocicleta atualizada (local)!');
-          navigation.navigate('RegisteredMotorcycles', { updatedMotorcycle: updated });
-        }
+        const updated = await updateMotorcycle(existing.id, payload, null);
+        Alert.alert("Sucesso", "Motocicleta atualizada!");
+        navigation.navigate("RegisteredMotorcycles", { updatedMotorcycle: updated });
       } else {
-        if (token) {
-          const created = await createMotorcycle(payload, token);
-          Alert.alert('Sucesso', 'Motocicleta cadastrada (API)!');
-          navigation.navigate('RegisteredMotorcycles', { newMotorcycle: created });
-        } else {
-          const local = { ...payload, id: Date.now().toString() };
-          await addMotorcycle(local);
-          Alert.alert('Sucesso', 'Motocicleta cadastrada (local)!');
-          navigation.navigate('RegisteredMotorcycles', { newMotorcycle: local });
-        }
+        const created = await createMotorcycle(payload, null);
+        Alert.alert("Sucesso", "Motocicleta cadastrada!");
+        navigation.navigate("RegisteredMotorcycles", { newMotorcycle: created });
       }
     } catch (e) {
-      setError(e.message || "Erro ao salvar.");
+      setError(e?.message || "Erro ao salvar.");
     } finally {
       setSubmitting(false);
     }
   }
 
+  async function handleLogout() {
+    await clearSession();
+    Alert.alert("Pronto", "Você saiu da conta.", [
+      { text: "OK", onPress: () => navigation.reset({ index: 0, routes: [{ name: "SignIn" }] }) }
+    ]);
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <Animatable.View animation="fadeInLeft" delay={500} style={styles.containerHeader}>
+      <ThemeToggle />
+      <View style={styles.containerHeader}>
         <Text style={styles.message}>{existing ? "Editar Motocicleta" : "Cadastrar Motocicleta"}</Text>
-      </Animatable.View>
+      </View>
 
-      {/* BLOQUEIO TOTAL se não estiver logado */}
-      <RequireAuth redirectTo="RegisterMotorcycle">
-        <Animatable.View animation="fadeInUp" style={styles.containerForm}>
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-              {[
-                { label: "RFID", value: rfid, setter: setRfid, placeholder: "Digite o rfid" },
-                { label: "Placa", value: placa, setter: setPlaca, placeholder: "Digite a placa" },
-                { label: "Chassi", value: chassi, setter: setChassi, placeholder: "Digite o chassi" },
-                { label: "Filial (opcional)", value: filial, setter: setFilial, placeholder: "Digite a filial" },
-                { label: "Status/Problema", value: status, setter: setStatus, placeholder: "Descreva o status" },
-                { label: "Portal (nome, para cores)", value: portal, setter: setPortal, placeholder: "Ex.: 1 / Azul / A" },
-              ].map((field, idx) => (
-                <React.Fragment key={idx}>
-                  <Text style={styles.title}>{field.label}</Text>
-                  <TextInput
-                    placeholder={field.placeholder}
-                    style={styles.input}
-                    placeholderTextColor="#ccc"
-                    value={field.value}
-                    onChangeText={field.setter}
-                  />
-                </React.Fragment>
-              ))}
+      <View style={styles.containerForm}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+            {[
+              { label: "RFID", value: rfid, setter: setRfid, placeholder: "Digite o RFID" },
+              { label: "Placa", value: placa, setter: setPlaca, placeholder: "Digite a placa" },
+              { label: "Chassi", value: chassi, setter: setChassi, placeholder: "Digite o chassi" },
+              { label: "Filial (opcional)", value: filial, setter: setFilial, placeholder: "Digite a filial" },
+              { label: "Status/Problema", value: status, setter: setStatus, placeholder: "Descreva o status" },
+              { label: "Portal (cores)", value: portal, setter: setPortal, placeholder: "Ex.: Azul, Laranja, 1, 2..." },
+            ].map((f, idx) => (
+              <React.Fragment key={idx}>
+                <Text style={styles.title}>{f.label}</Text>
+                <TextInput
+                  placeholder={f.placeholder}
+                  style={styles.input}
+                  placeholderTextColor="#999"
+                  value={f.value}
+                  onChangeText={f.setter}
+                />
+              </React.Fragment>
+            ))}
 
-              {!!error && <Text style={{ color: "#ffdddd", marginTop: 8 }}>{error}</Text>}
+            {!!error && <Text style={{ color: "#ffdddd", marginTop: 8 }}>{error}</Text>}
 
-              <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={submitting}>
-                {submitting ? <ActivityIndicator /> : <Text style={styles.buttonText}>{existing ? "Salvar Alterações" : "Cadastrar Moto"}</Text>}
-              </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={submitting}>
+              {submitting ? <ActivityIndicator /> : <Text style={styles.buttonText}>{existing ? "Salvar Alterações" : "Cadastrar Moto"}</Text>}
+            </TouchableOpacity>
 
-              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Text style={styles.backButtonText}>Voltar</Text>
-              </TouchableOpacity>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <Text style={styles.backButtonText}>Voltar</Text>
+            </TouchableOpacity>
 
-              <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Welcome')}>
-                <Text style={styles.backButtonText}>Ir para o Início</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </Animatable.View>
-      </RequireAuth>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Welcome')}>
+              <Text style={styles.backButtonText}>Ir para o Início</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.button, { marginTop: 10 }]} onPress={handleLogout}>
+              <Text style={styles.buttonText}>Logout</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#161616" },
+const makeStyles = (t) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   containerHeader: { marginTop: '25%', marginBottom: '8%', paddingStart: '5%' },
-  message: { fontSize: 28, fontWeight: "bold", color: "#fff" },
+  message: { fontSize: 28, fontWeight: "bold", color: t.textOnBg },
   containerForm: {
     flex: 1,
-    backgroundColor: "#268B7D",
+    backgroundColor: t.surface,
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     paddingStart: '5%',
     paddingEnd: '5%',
     paddingTop: 24
   },
-  title: { color: "#fff", fontSize: 20, marginTop: 20 },
-  input: {
-    backgroundColor: "#fff",
-    width: "100%",
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    height: 40,
-    marginTop: 8
-  },
-  button: {
-    backgroundColor: "#1E5F55",
-    width: "100%",
-    borderRadius: 4,
-    paddingVertical: 10,
-    marginTop: 20,
-    alignItems: "center"
-  },
+  title: { color: t.textOnSurface, fontSize: 20, marginTop: 20 },
+  input: { backgroundColor: "#fff", width: "100%", borderRadius: 4, paddingHorizontal: 10, height: 40, marginTop: 8 },
+  button: { backgroundColor: t.primary, width: "100%", borderRadius: 4, paddingVertical: 10, marginTop: 20, alignItems: "center" },
   buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   backButton: { marginTop: 15, alignItems: "center" },
-  backButtonText: { color: "#fff", fontSize: 16, textDecorationLine: "underline" }
+  backButtonText: { color: t.textOnSurface, fontSize: 16, textDecorationLine: "underline" }
 });

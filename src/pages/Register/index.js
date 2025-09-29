@@ -1,67 +1,57 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
-import * as Animatable from 'react-native-animatable';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Animatable from "react-native-animatable";
+import { useNavigation } from "@react-navigation/native";
 
-const USERS_KEY = '@users';
-const LAST_USER_KEY = '@user_data';
+import { useThemeOS } from "../../Theme/ThemeProvider";
+import ThemeToggle from "../../Components/ThemeToggle";
+import { getUser, saveUser } from "../Storage/auth";
 
 export default function Register() {
   const navigation = useNavigation();
-  const route = useRoute();
-  const redirectTo = route.params?.redirectTo || null;
-  const prefillEmail = route.params?.prefillEmail || "";
+  const { theme } = useThemeOS();
+  const styles = makeStyles(theme);
 
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState(prefillEmail);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  function normalize(s) { return String(s || "").trim().toLowerCase(); }
-
-  useEffect(() => { if (prefillEmail) setEmail(prefillEmail); }, [prefillEmail]);
-
   async function handleRegister() {
-    if (!fullName || !email || !password || !confirmPassword) {
+    const _fullName = fullName.trim();
+    const _email = email.trim().toLowerCase();
+    const _password = password;
+
+    if (!_fullName || !_email || !_password || !confirmPassword) {
       Alert.alert("Erro", "Preencha todos os campos!");
       return;
     }
-    if (password !== confirmPassword) {
+    if (_password !== confirmPassword) {
       Alert.alert("Erro", "As senhas não coincidem!");
       return;
     }
 
-    const newUser = { fullName: fullName.trim(), email: email.trim(), password };
+    const existing = await getUser();
+    if (existing && existing.email && existing.email.toLowerCase() === _email) {
+      Alert.alert("Atenção", "Usuário com este e-mail já existe.");
+      return;
+    }
+
+    const userData = { fullName: _fullName, email: _email, password: _password };
 
     try {
-      const raw = await AsyncStorage.getItem(USERS_KEY);
-      const users = raw ? JSON.parse(raw) : [];
-
-      const exists = users.some(u =>
-        normalize(u.fullName) === normalize(newUser.fullName) &&
-        normalize(u.email) === normalize(newUser.email)
-      );
-      if (exists) {
-        Alert.alert("Usuário já cadastrado", "Já existe um usuário com este nome e e-mail.");
-        return;
-      }
-
-      const updated = [newUser, ...users];
-      await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updated));
-      await AsyncStorage.setItem(LAST_USER_KEY, JSON.stringify(newUser));
-
+      await saveUser(userData);
       Alert.alert("Sucesso", "Cadastro realizado com sucesso!", [
-        { text: "OK", onPress: () => navigation.navigate("SignIn", { prefillEmail: newUser.email, redirectTo }) }
+        { text: "OK", onPress: () => navigation.navigate("SignIn") },
       ]);
-    } catch (error) {
+    } catch {
       Alert.alert("Erro", "Não foi possível salvar os dados.");
-      console.log(error);
     }
   }
 
   return (
     <View style={styles.container}>
+      <ThemeToggle />
       <Animatable.View animation="fadeInLeft" delay={500} style={styles.containerHeader}>
         <Text style={styles.message}>Crie sua conta</Text>
       </Animatable.View>
@@ -71,7 +61,7 @@ export default function Register() {
         <TextInput
           placeholder="Digite seu nome completo"
           style={styles.input}
-          placeholderTextColor="#ccc"
+          placeholderTextColor="#999"
           value={fullName}
           onChangeText={setFullName}
         />
@@ -80,7 +70,7 @@ export default function Register() {
         <TextInput
           placeholder="Digite seu e-mail"
           style={styles.input}
-          placeholderTextColor="#ccc"
+          placeholderTextColor="#999"
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -92,7 +82,7 @@ export default function Register() {
           placeholder="Digite sua senha"
           style={styles.input}
           secureTextEntry
-          placeholderTextColor="#ccc"
+          placeholderTextColor="#999"
           value={password}
           onChangeText={setPassword}
         />
@@ -102,7 +92,7 @@ export default function Register() {
           placeholder="Confirme sua senha"
           style={styles.input}
           secureTextEntry
-          placeholderTextColor="#ccc"
+          placeholderTextColor="#999"
           value={confirmPassword}
           onChangeText={setConfirmPassword}
         />
@@ -119,21 +109,38 @@ export default function Register() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#161616" },
-  containerHeader: { marginTop: '25%', marginBottom: '8%', paddingStart: '5%' },
-  message: { fontSize: 30, fontWeight: 'bold', color: '#fff' },
-  containerForm: {
-    flex: 1, backgroundColor: "#268B7D", borderTopEndRadius: 25, borderTopStartRadius: 25,
-    paddingStart: "5%", paddingEnd: "5%", paddingTop: 20,
-  },
-  title: { fontSize: 20, marginTop: 20, color: "#fff" },
-  input: { borderBottomWidth: 1, height: 40, marginBottom: 12, fontSize: 16, color: "#fff" },
-  button: {
-    backgroundColor: "#1E5F55", width: "100%", borderRadius: 4, paddingVertical: 10,
-    marginTop: 20, alignItems: "center"
-  },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  backButton: { marginTop: 15, alignItems: "center" },
-  backButtonText: { color: "#fff", fontSize: 16, textDecorationLine: "underline" },
-});
+const makeStyles = (t) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: t.bg },
+    containerHeader: { marginTop: "25%", marginBottom: "8%", paddingStart: "5%" },
+    message: { fontSize: 30, fontWeight: "bold", color: t.textOnBg },
+    containerForm: {
+      flex: 1,
+      backgroundColor: t.surface,
+      borderTopEndRadius: 25,
+      borderTopStartRadius: 25,
+      paddingStart: "5%",
+      paddingEnd: "5%",
+      paddingTop: 20,
+    },
+    title: { fontSize: 20, marginTop: 20, color: t.textOnSurface },
+    input: {
+      borderBottomWidth: 1,
+      borderBottomColor: t.textOnSurface + "33",
+      height: 40,
+      marginBottom: 12,
+      fontSize: 16,
+      color: t.textOnSurface,
+    },
+    button: {
+      backgroundColor: t.primary,
+      width: "100%",
+      borderRadius: 4,
+      paddingVertical: 10,
+      marginTop: 20,
+      alignItems: "center",
+    },
+    buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+    backButton: { marginTop: 15, alignItems: "center" },
+    backButtonText: { color: t.textOnSurface, fontSize: 16, textDecorationLine: "underline" },
+  });

@@ -1,4 +1,5 @@
-// AJUSTE AQUI para o endereço da sua API .NET
-// Em dev no PC: use http://localhost:<porta> (se for emulador iOS no Mac, pode usar http://localhost.
-// Em dispositivo físico, use http://SEU_IP_LOCAL:<porta>
-export const API_BASE_URL = "http://localhost:51927";
+// src/Config/env.js
+// Se tiver API pública/acessível no iPhone (ngrok ou IP+Dev Client), preencha. Ex.: "https://xxxx.ngrok-free.app"
+// Se deixar "", o app funciona em modo LOCAL (AsyncStorage).
+export const API_BASE_URL = ""; 
+export const API_TIMEOUT_MS = 10000;

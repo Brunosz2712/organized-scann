@@ -1,26 +1,24 @@
-// Mantém seu visual dark atual como padrão
-export const DarkTheme = {
+// src/Theme/theme.js
+export const dark = {
   name: "dark",
-  colors: {
-    background: "#161616",
-    surface: "#268B7D",
-    primary: "#1E5F55",
-    textPrimary: "#FFFFFF",
-    textSecondary: "#333333",
-    card: "#FFFFFF",
-    accent: "#268B7D",
-  },
+  bg: "#161616",
+  surface: "#268B7D",
+  textOnBg: "#FFFFFF",
+  textOnSurface: "#FFFFFF",
+  primary: "#1E5F55",
+  cardBg: "#FFFFFF",
+  cardTitle: "#268B7D",
+  cardText: "#333333",
 };
 
-export const LightTheme = {
+export const light = {
   name: "light",
-  colors: {
-    background: "#F7F7F7",
-    surface: "#E2F0ED",
-    primary: "#268B7D",
-    textPrimary: "#111111",
-    textSecondary: "#444444",
-    card: "#FFFFFF",
-    accent: "#1E5F55",
-  },
+  bg: "#FFFFFF",
+  surface: "#E6F2F0",
+  textOnBg: "#111111",
+  textOnSurface: "#111111",
+  primary: "#268B7D",
+  cardBg: "#FFFFFF",
+  cardTitle: "#268B7D",
+  cardText: "#333333",
 };

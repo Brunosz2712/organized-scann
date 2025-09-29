@@ -1,83 +1,58 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
-import * as Animatable from 'react-native-animatable';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from "../../Context/AuthContext";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
+import * as Animatable from "react-native-animatable";
+import { useNavigation } from "@react-navigation/native";
 
-const USERS_KEY = '@users';
+import { useThemeOS } from "../../Theme/ThemeProvider";
+import ThemeToggle from "../../Components/ThemeToggle";
+import { getUser, login as setSession } from "../Storage/auth";
 
 export default function SignIn() {
   const navigation = useNavigation();
-  const route = useRoute();
-  const redirectTo = route.params?.redirectTo || null;   // "RegisterMotorcycle" | "RegisteredMotorcycles"
-  const prefillEmail = route.params?.prefillEmail || "";
+  const { theme } = useThemeOS();
+  const styles = makeStyles(theme);
 
-  const { signIn, signInLocal } = useAuth?.() || {};
-  const [email, setEmail] = useState(prefillEmail);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  function normalize(s) { return String(s || "").trim().toLowerCase(); }
+  async function handleLogin() {
+    const _email = email.trim().toLowerCase();
+    const _password = password;
 
-  async function handleSignIn() {
-    if (!email || !password) {
-      Alert.alert("Atenção", "Informe e-mail e senha.");
+    if (!_email || !_password) {
+      Alert.alert("Erro", "Preencha e-mail e senha.");
       return;
     }
-    setLoading(true);
 
-    // 1) Tenta API (se estiver configurada)
-    if (typeof signIn === "function") {
-      try {
-        await signIn(email, password);
-        setLoading(false);
-        // vai para o alvo desejado, senão Welcome
-        navigation.reset({ index: 0, routes: [{ name: redirectTo || 'Welcome' }] });
-        return;
-      } catch (e) {
-        // cai para o login local
-      }
-    }
-
-    // 2) Fallback local (@users)
     try {
-      const raw = await AsyncStorage.getItem(USERS_KEY);
-      const users = raw ? JSON.parse(raw) : [];
-      const existing = users.find(u => normalize(u.email) === normalize(email));
-
-      if (!existing) {
-        setLoading(false);
-        Alert.alert(
-          "Conta não encontrada",
-          "Você ainda não tem cadastro. Vamos criar agora?",
-          [{ text: "OK", onPress: () => navigation.navigate("Register", { prefillEmail: email, redirectTo }) }],
-          { cancelable: false }
-        );
+      const user = await getUser();
+      if (!user) {
+        Alert.alert("Atenção", "Você ainda não tem cadastro.", [
+          { text: "OK", onPress: () => navigation.navigate("Register") },
+        ]);
         return;
       }
 
-      if (existing.password !== password) {
-        setLoading(false);
-        Alert.alert("Erro", "Senha inválida.");
+      const ok = user?.email?.toLowerCase() === _email && user?.password === _password;
+      if (!ok) {
+        Alert.alert("Erro", "Credenciais inválidas.");
         return;
       }
 
-      // autentica localmente no contexto
-      await signInLocal?.({ name: existing.fullName || existing.name || "Usuário", email: existing.email });
-      setLoading(false);
-      navigation.reset({ index: 0, routes: [{ name: redirectTo || 'Welcome' }] });
-    } catch (e) {
-      setLoading(false);
-      Alert.alert("Erro", "Não foi possível autenticar.");
-      console.log(e);
+      await setSession({ fullName: user.fullName, email: user.email });
+      Alert.alert("Bem-vindo", `Login realizado!`, [
+        { text: "OK", onPress: () => navigation.replace("RegisteredMotorcycles") },
+      ]);
+    } catch {
+      Alert.alert("Erro", "Falha ao efetuar login.");
     }
   }
 
   return (
     <View style={styles.container}>
-      <Animatable.View animation="fadeInLeft" delay={500} style={styles.containerHeader}>
-        <Text style={styles.message}>Bem-vindo(a)</Text>
+      <ThemeToggle />
+      <Animatable.View animation="fadeInLeft" delay={300} style={styles.containerHeader}>
+        <Text style={styles.message}>Faça seu login</Text>
       </Animatable.View>
 
       <Animatable.View animation="fadeInUp" style={styles.containerForm}>
@@ -85,9 +60,9 @@ export default function SignIn() {
         <TextInput
           placeholder="Digite seu e-mail"
           style={styles.input}
-          placeholderTextColor="#ccc"
-          keyboardType="email-address"
+          placeholderTextColor="#999"
           autoCapitalize="none"
+          keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
         />
@@ -96,14 +71,14 @@ export default function SignIn() {
         <TextInput
           placeholder="Digite sua senha"
           style={styles.input}
+          placeholderTextColor="#999"
           secureTextEntry
-          placeholderTextColor="#ccc"
           value={password}
           onChangeText={setPassword}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleSignIn} disabled={loading}>
-          {loading ? <ActivityIndicator /> : <Text style={styles.buttonText}>Entrar</Text>}
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate("Register")}>
@@ -111,28 +86,45 @@ export default function SignIn() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate("Welcome")}>
-          <Text style={styles.backButtonText}>Voltar ao início</Text>
+          <Text style={styles.backButtonText}>Voltar para o início</Text>
         </TouchableOpacity>
       </Animatable.View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#161616" },
-  containerHeader: { marginTop: '25%', marginBottom: '8%', paddingStart: '5%' },
-  message: { fontSize: 30, fontWeight: 'bold', color: '#fff' },
-  containerForm: {
-    flex: 1, backgroundColor: "#268B7D", borderTopEndRadius: 25, borderTopStartRadius: 25,
-    paddingStart: "5%", paddingEnd: "5%", paddingTop: 20,
-  },
-  title: { fontSize: 20, marginTop: 20, color: "#fff" },
-  input: { borderBottomWidth: 1, height: 40, marginBottom: 12, fontSize: 16, color: "#fff" },
-  button: {
-    backgroundColor: "#1E5F55", width: "100%", borderRadius: 4, paddingVertical: 10,
-    marginTop: 20, alignItems: "center"
-  },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  backButton: { marginTop: 15, alignItems: "center" },
-  backButtonText: { color: "#fff", fontSize: 16, textDecorationLine: "underline" },
-});
+const makeStyles = (t) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: t.bg },
+    containerHeader: { marginTop: "25%", marginBottom: "8%", paddingStart: "5%" },
+    message: { fontSize: 30, fontWeight: "bold", color: t.textOnBg },
+    containerForm: {
+      flex: 1,
+      backgroundColor: t.surface,
+      borderTopEndRadius: 25,
+      borderTopStartRadius: 25,
+      paddingStart: "5%",
+      paddingEnd: "5%",
+      paddingTop: 20,
+    },
+    title: { fontSize: 20, marginTop: 20, color: t.textOnSurface },
+    input: {
+      borderBottomWidth: 1,
+      borderBottomColor: t.textOnSurface + "33",
+      height: 40,
+      marginBottom: 12,
+      fontSize: 16,
+      color: t.textOnSurface,
+    },
+    button: {
+      backgroundColor: t.primary,
+      width: "100%",
+      borderRadius: 4,
+      paddingVertical: 10,
+      marginTop: 20,
+      alignItems: "center",
+    },
+    buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+    backButton: { marginTop: 15, alignItems: "center" },
+    backButtonText: { color: t.textOnSurface, fontSize: 16, textDecorationLine: "underline" },
+  });

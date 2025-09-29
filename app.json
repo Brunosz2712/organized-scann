@@ -1,7 +1,20 @@
 {
   "expo": {
-    "name": "organized-scann",
+    "name": "Organized Scann",
     "slug": "organized-scann",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "orientation": "portrait",
+
+    "assetBundlePatterns": ["**/*"],
+
+    "ios": {
+      "supportsTablet": false
+    },
+
+    "android": {
+      "permissions": []
+    },
+
+    "web": {}
   }
 }
