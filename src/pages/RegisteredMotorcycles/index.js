@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useThemeOS } from "../../Theme/ThemeProvider";
 import ThemeToggle from "../../Components/ThemeToggle";
 
 import { listMotorcycles, deleteMotorcycle } from "../../Services/motorcyclesService";
-import { saveMotorcycles } from "../Storage/motorcycles.js";
+import { saveMotorcycles, loadMotorcycles as loadFromCache } from "../Storage/motorcycles.js";
 import { logout as clearSession } from "../Storage/auth";
 
 export default function RegisteredMotorcycles() {
@@ -18,76 +18,100 @@ export default function RegisteredMotorcycles() {
 
   const [motorcycles, setMotorcycles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingAction, setLoadingAction] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
-  const fetchData = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const data = await listMotorcycles(null, { pageNumber: 1, pageSize: 100 });
-      setMotorcycles(Array.isArray(data) ? data : []);
-      await saveMotorcycles(Array.isArray(data) ? data : []);
-    } catch (e) {
-      Alert.alert("Erro", e.message || "Falha ao carregar.");
-    } finally {
-      setLoading(false);
-    }
+    const data = await listMotorcycles(undefined, { pageNumber: 1, pageSize: 100 });
+    const arr = Array.isArray(data) ? data : [];
+    setMotorcycles(arr);
+    await saveMotorcycles(arr);
+    setLoading(false);
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   useEffect(() => {
     const n = route.params?.newMotorcycle;
     const u = route.params?.updatedMotorcycle;
     if (!n && !u) return;
+
     setMotorcycles(prev => {
-      let out = Array.isArray(prev) ? prev.slice() : [];
+      let out = Array.isArray(prev) ? [...prev] : [];
       if (n) out = [n, ...out.filter(m => String(m.id) !== String(n.id))];
       if (u) out = out.map(m => String(m.id) === String(u.id) ? u : m);
       saveMotorcycles(out);
       return out;
     });
+
     navigation.setParams({ newMotorcycle: undefined, updatedMotorcycle: undefined });
   }, [route.params?.newMotorcycle, route.params?.updatedMotorcycle, navigation]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    const cached = await loadFromCache();
+    setMotorcycles(Array.isArray(cached) ? cached : []);
+    setRefreshing(false);
+  }, []);
+
   async function handleDelete(item) {
-    setLoadingAction(true);
-    try {
-      await deleteMotorcycle(item.id, null);
-      setMotorcycles(prev => prev.filter(m => String(m.id) !== String(item.id)));
-    } catch (e) {
-      Alert.alert("Erro", e.message || "Não foi possível excluir.");
-    } finally {
-      setLoadingAction(false);
-    }
+    Alert.alert("Confirmar", `Excluir a moto ${item.placa}?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: async () => {
+          setDeletingId(String(item.id));
+          try {
+            await deleteMotorcycle(item.id);
+            setMotorcycles(prev => {
+              const next = prev.filter(m => String(m.id) !== String(item.id));
+              saveMotorcycles(next);
+              return next;
+            });
+          } finally {
+            setDeletingId(null);
+          }
+        }
+      }
+    ]);
   }
 
   const goToRegister = () => navigation.navigate("RegisterMotorcycle");
   const goToEdit = (item) => navigation.navigate("RegisterMotorcycle", { existing: item });
 
   async function handleLogout() {
-    await clearSession();
-    Alert.alert("Pronto", "Você saiu da conta.", [
-      { text: "OK", onPress: () => navigation.reset({ index: 0, routes: [{ name: "SignIn" }] }) }
-    ]);
+    try { await clearSession(); } catch {}
+    navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
   }
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>Placa: {item.placa}</Text>
-      <Text style={styles.cardText}>RFID: {item.rfid}</Text>
-      {!!item.status && <Text style={styles.cardText}>Status: {item.status}</Text>}
-      {!!item.portal && <Text style={styles.cardText}>Portal: {String(item.portal)}</Text>}
+  const renderItem = ({ item }) => {
+    const isDeleting = deletingId === String(item.id);
+    return (
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Placa: {item.placa}</Text>
+        <Text style={styles.cardText}>RFID: {item.rfid}</Text>
+        {!!item.status && <Text style={styles.cardText}>Status: {item.status}</Text>}
+        {!!item.portal && <Text style={styles.cardText}>Portal: {String(item.portal)}</Text>}
 
-      <View style={{ marginTop: 8, flexDirection: "row", gap: 8 }}>
-        <TouchableOpacity style={[styles.button, { flex: 1 }]} onPress={() => goToEdit(item)}>
-          <Text style={styles.buttonText}>Editar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { flex: 1 }]} onPress={() => handleDelete(item)} disabled={loadingAction}>
-          {loadingAction ? <ActivityIndicator /> : <Text style={styles.buttonText}>Excluir</Text>}
-        </TouchableOpacity>
+        <View style={{ marginTop: 8, flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity style={[styles.button, { flex: 1 }]} onPress={() => goToEdit(item)} disabled={isDeleting}>
+            <Text style={styles.buttonText}>Editar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, { flex: 1, opacity: isDeleting ? 0.7 : 1 }]}
+            onPress={() => handleDelete(item)}
+            disabled={isDeleting}
+          >
+            {isDeleting ? <ActivityIndicator /> : <Text style={styles.buttonText}>Excluir</Text>}
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -106,6 +130,8 @@ export default function RegisteredMotorcycles() {
             contentContainerStyle={{ paddingBottom: 24 }}
             ListEmptyComponent={<Text style={styles.empty}>Nenhum cadastro ainda.</Text>}
             keyboardShouldPersistTaps="handled"
+            refreshing={refreshing}
+            onRefresh={onRefresh}
           />
         )}
 

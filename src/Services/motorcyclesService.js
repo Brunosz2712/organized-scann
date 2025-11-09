@@ -1,8 +1,6 @@
-// src/Services/motorcyclesService.js
 import { apiRequest, isLocalMode } from "./api";
 import {
   loadMotorcycles,
-  saveMotorcycles,
   addMotorcycle as addLocal,
   updateMotorcycleLocal,
   deleteMotorcycleLocal
@@ -10,7 +8,6 @@ import {
 
 const PREFIX = "/api/motorcycles";
 
-// LIST
 export async function listMotorcycles(token, { pageNumber = 1, pageSize = 50 } = {}) {
   if (isLocalMode) {
     return await loadMotorcycles();
@@ -20,7 +17,6 @@ export async function listMotorcycles(token, { pageNumber = 1, pageSize = 50 } =
   return items.map(mapFromApi);
 }
 
-// CREATE
 export async function createMotorcycle(payload, token) {
   if (isLocalMode) {
     const local = { ...payload, id: Date.now().toString() };
@@ -31,7 +27,6 @@ export async function createMotorcycle(payload, token) {
   return mapFromApi(created?.data || created?.Data || created);
 }
 
-// UPDATE
 export async function updateMotorcycle(id, payload, token) {
   if (isLocalMode) {
     return updateMotorcycleLocal(id, payload);
@@ -40,7 +35,6 @@ export async function updateMotorcycle(id, payload, token) {
   return mapFromApi(updated?.data || updated?.Data || updated);
 }
 
-// DELETE
 export async function deleteMotorcycle(id, token) {
   if (isLocalMode) {
     deleteMotorcycleLocal(id);
@@ -50,7 +44,6 @@ export async function deleteMotorcycle(id, token) {
   return true;
 }
 
-/* ========== MAPS ========== */
 function mapToApi(app) {
   const now = new Date();
   const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);

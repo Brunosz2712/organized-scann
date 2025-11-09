@@ -41,35 +41,41 @@ export default function RegisterMotorcycle() {
     }
   }, [existing]);
 
+  function normalizePlaca(p) {
+    return String(p || "").toUpperCase().replace(/\s+/g, "");
+  }
+
   async function handleSubmit() {
     setError("");
-    if (!rfid.trim() || !placa.trim()) {
+
+    const _rfid   = rfid.trim();
+    const _placa  = normalizePlaca(placa);
+    const _chassi = chassi.trim();
+    const _filial = filial.trim();
+    const _status = status.trim();
+    const _portal = portal.trim();
+
+    if (!_rfid || !_placa) {
       setError("Preencha ao menos RFID e Placa.");
       return;
     }
 
-    const payload = {
-      rfid: rfid.trim(),
-      placa: placa.trim(),
-      chassi: chassi.trim(),
-      filial: filial.trim(),
-      status: status.trim(),
-      portal: portal.trim(),
-    };
+    const payload = { rfid: _rfid, placa: _placa, chassi: _chassi, filial: _filial, status: _status, portal: _portal };
 
     setSubmitting(true);
     try {
-      if (existing) {
-        const updated = await updateMotorcycle(existing.id, payload, null);
+      if (existing?.id) {
+        const updated = await updateMotorcycle(existing.id, payload);
         Alert.alert("Sucesso", "Motocicleta atualizada!");
         navigation.navigate("RegisteredMotorcycles", { updatedMotorcycle: updated });
       } else {
-        const created = await createMotorcycle(payload, null);
+        const created = await createMotorcycle(payload);
         Alert.alert("Sucesso", "Motocicleta cadastrada!");
         navigation.navigate("RegisteredMotorcycles", { newMotorcycle: created });
       }
     } catch (e) {
-      setError(e?.message || "Erro ao salvar.");
+      const msg = e?.message?.replace(/^Erro na API:\s*/i, "") || "Erro ao salvar.";
+      setError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -78,7 +84,7 @@ export default function RegisterMotorcycle() {
   async function handleLogout() {
     await clearSession();
     Alert.alert("Pronto", "Você saiu da conta.", [
-      { text: "OK", onPress: () => navigation.reset({ index: 0, routes: [{ name: "SignIn" }] }) }
+      { text: "OK", onPress: () => navigation.reset({ index: 0, routes: [{ name: "Welcome" }] }) }
     ]);
   }
 
@@ -93,12 +99,12 @@ export default function RegisterMotorcycle() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
             {[
-              { label: "RFID", value: rfid, setter: setRfid, placeholder: "Digite o RFID" },
-              { label: "Placa", value: placa, setter: setPlaca, placeholder: "Digite a placa" },
-              { label: "Chassi", value: chassi, setter: setChassi, placeholder: "Digite o chassi" },
+              { label: "RFID", value: rfid, setter: setRfid, placeholder: "Digite o RFID", autoCapitalize: "characters" },
+              { label: "Placa", value: placa, setter: setPlaca, placeholder: "Digite a placa", autoCapitalize: "characters" },
+              { label: "Chassi", value: chassi, setter: setChassi, placeholder: "Digite o chassi", autoCapitalize: "characters" },
               { label: "Filial (opcional)", value: filial, setter: setFilial, placeholder: "Digite a filial" },
               { label: "Status/Problema", value: status, setter: setStatus, placeholder: "Descreva o status" },
-              { label: "Portal (cores)", value: portal, setter: setPortal, placeholder: "Ex.: Azul, Laranja, 1, 2..." },
+              { label: "Portal (nome/cor/id)", value: portal, setter: setPortal, placeholder: "Ex.: Azul, Laranja ou 1, 2..." },
             ].map((f, idx) => (
               <React.Fragment key={idx}>
                 <Text style={styles.title}>{f.label}</Text>
@@ -108,6 +114,8 @@ export default function RegisterMotorcycle() {
                   placeholderTextColor="#999"
                   value={f.value}
                   onChangeText={f.setter}
+                  autoCapitalize={f.autoCapitalize || "none"}
+                  returnKeyType="next"
                 />
               </React.Fragment>
             ))}
@@ -126,7 +134,7 @@ export default function RegisterMotorcycle() {
               <Text style={styles.backButtonText}>Ir para o Início</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.button, { marginTop: 10 }]} onPress={handleLogout}>
+            <TouchableOpacity style={[styles.button, { marginTop: 10 }]} onPress={handleLogout} disabled={submitting}>
               <Text style={styles.buttonText}>Logout</Text>
             </TouchableOpacity>
           </ScrollView>

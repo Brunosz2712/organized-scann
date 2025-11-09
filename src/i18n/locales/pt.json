@@ -1,0 +1,18 @@
+{
+  "welcome_title": "Organize, rastreie e acelere com inteligência!",
+  "welcome_cta": "Comece agora",
+  "access": "Acessar",
+  "register_motorcycle": "Cadastrar Motocicleta",
+  "registered_motorcycles": "Motocicletas Cadastradas",
+  "list_title": "Motocicletas Cadastradas",
+  "none_yet": "Nenhum cadastro ainda.",
+  "edit": "Editar",
+  "delete": "Excluir",
+  "logout": "Sair",
+  "back": "Voltar",
+  "home": "Ir para o Início",
+  "form_required": "Preencha ao menos RFID e Placa.",
+  "save": "Salvar",
+  "create_bike": "Cadastrar Moto",
+  "update_bike": "Salvar Alterações"
+}

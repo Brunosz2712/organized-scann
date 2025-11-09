@@ -1,4 +1,3 @@
-// src/Theme/ThemeProvider.js
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";

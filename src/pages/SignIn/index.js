@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import * as Animatable from "react-native-animatable";
 import { useNavigation } from "@react-navigation/native";
 
 import { useThemeOS } from "../../Theme/ThemeProvider";
 import ThemeToggle from "../../Components/ThemeToggle";
-import { getUser, login as setSession } from "../Storage/auth";
+
+import { login as setSession, saveUser, getUser } from "../Storage/auth";
 
 export default function SignIn() {
   const navigation = useNavigation();
@@ -14,6 +15,7 @@ export default function SignIn() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   async function handleLogin() {
     const _email = email.trim().toLowerCase();
@@ -23,28 +25,30 @@ export default function SignIn() {
       Alert.alert("Erro", "Preencha e-mail e senha.");
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_email)) {
+      Alert.alert("Erro", "E-mail inválido.");
+      return;
+    }
 
+    setSubmitting(true);
     try {
-      const user = await getUser();
-      if (!user) {
-        Alert.alert("Atenção", "Você ainda não tem cadastro.", [
-          { text: "OK", onPress: () => navigation.navigate("Register") },
-        ]);
-        return;
+      const existing = await getUser();
+      if (existing && existing.email?.toLowerCase() === _email) {
+        if (existing.password !== _password) throw new Error("Credenciais inválidas.");
+        await setSession({ fullName: existing.fullName || "Usuário Local", email: existing.email });
+      } else {
+        const userData = { fullName: "Usuário Local", email: _email, password: _password };
+        await saveUser(userData);
+        await setSession({ fullName: userData.fullName, email: userData.email });
       }
 
-      const ok = user?.email?.toLowerCase() === _email && user?.password === _password;
-      if (!ok) {
-        Alert.alert("Erro", "Credenciais inválidas.");
-        return;
-      }
-
-      await setSession({ fullName: user.fullName, email: user.email });
-      Alert.alert("Bem-vindo", `Login realizado!`, [
+      Alert.alert("Bem-vindo", "Login realizado!", [
         { text: "OK", onPress: () => navigation.replace("RegisteredMotorcycles") },
       ]);
-    } catch {
-      Alert.alert("Erro", "Falha ao efetuar login.");
+    } catch (e) {
+      Alert.alert("Erro", String(e?.message || "Falha ao efetuar login."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -65,6 +69,7 @@ export default function SignIn() {
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
+          returnKeyType="next"
         />
 
         <Text style={styles.title}>Senha</Text>
@@ -73,12 +78,15 @@ export default function SignIn() {
           style={styles.input}
           placeholderTextColor="#999"
           secureTextEntry
+          autoCapitalize="none"
           value={password}
           onChangeText={setPassword}
+          returnKeyType="go"
+          onSubmitEditing={handleLogin}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Entrar</Text>
+        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={submitting}>
+          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate("Register")}>

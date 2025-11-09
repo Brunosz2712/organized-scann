@@ -1,33 +1,33 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAuth } from '../Context/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
-// Telas
 import Welcome from '../pages/Welcome';
-import SignIn from '../pages/SignIn';
-import Register from '../pages/Register';
 import RegisteredMotorcycles from '../pages/RegisteredMotorcycles';
 import RegisterMotorcycle from '../pages/RegisterMotorcycle';
+import Register from '../pages/Register';
+import AboutApp from '../pages/AboutApp';
 
 const Stack = createNativeStackNavigator();
 
+function SignInRedirect() {
+  const navigation = useNavigation();
+  useEffect(() => {
+    navigation.replace('Welcome');
+  }, [navigation]);
+  return null;
+}
+
 export default function Routes() {
-  const { user } = useAuth?.() || { user: null };
-
   return (
-    <Stack.Navigator
-      // Se tiver user, abre na lista; senão, no Welcome
-      initialRouteName={user ? 'RegisteredMotorcycles' : 'Welcome'}
-      screenOptions={{ headerShown: false }}
-    >
-      {/* Público */}
+    <Stack.Navigator initialRouteName="Welcome" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Welcome" component={Welcome} />
-      <Stack.Screen name="SignIn" component={SignIn} />
-      <Stack.Screen name="Register" component={Register} />
-
-      {/* Privado (mas registrado SEMPRE) */}
       <Stack.Screen name="RegisteredMotorcycles" component={RegisteredMotorcycles} />
       <Stack.Screen name="RegisterMotorcycle" component={RegisterMotorcycle} />
+      <Stack.Screen name="Register" component={Register} />
+      <Stack.Screen name="AboutApp" component={AboutApp} />
+      {/* blindagem: caso algo navegue para 'SignIn', redireciona */}
+      <Stack.Screen name="SignIn" component={SignInRedirect} />
     </Stack.Navigator>
   );
 }

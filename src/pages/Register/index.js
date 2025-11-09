@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import * as Animatable from "react-native-animatable";
 import { useNavigation } from "@react-navigation/native";
 
 import { useThemeOS } from "../../Theme/ThemeProvider";
 import ThemeToggle from "../../Components/ThemeToggle";
-import { getUser, saveUser } from "../Storage/auth";
+import { registerService } from "../../Services/authService";
 
 export default function Register() {
   const navigation = useNavigation();
@@ -13,17 +13,26 @@ export default function Register() {
   const styles = makeStyles(theme);
 
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   async function handleRegister() {
     const _fullName = fullName.trim();
-    const _email = email.trim().toLowerCase();
+    const _email    = email.trim().toLowerCase();
     const _password = password;
 
     if (!_fullName || !_email || !_password || !confirmPassword) {
       Alert.alert("Erro", "Preencha todos os campos!");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_email)) {
+      Alert.alert("Erro", "E-mail inválido.");
+      return;
+    }
+    if (_password.length < 6) {
+      Alert.alert("Erro", "A senha deve ter pelo menos 6 caracteres.");
       return;
     }
     if (_password !== confirmPassword) {
@@ -31,21 +40,25 @@ export default function Register() {
       return;
     }
 
-    const existing = await getUser();
-    if (existing && existing.email && existing.email.toLowerCase() === _email) {
-      Alert.alert("Atenção", "Usuário com este e-mail já existe.");
-      return;
-    }
-
-    const userData = { fullName: _fullName, email: _email, password: _password };
-
+    setSubmitting(true);
     try {
-      await saveUser(userData);
-      Alert.alert("Sucesso", "Cadastro realizado com sucesso!", [
-        { text: "OK", onPress: () => navigation.navigate("SignIn") },
-      ]);
-    } catch {
-      Alert.alert("Erro", "Não foi possível salvar os dados.");
+      const res = await registerService({ name: _fullName, email: _email, password: _password });
+      const token = res?.token ?? null;
+
+      if (token) {
+        Alert.alert("Sucesso", "Cadastro concluído!", [
+          { text: "OK", onPress: () => navigation.replace("RegisteredMotorcycles") },
+        ]);
+      } else {
+        Alert.alert("Sucesso", "Cadastro realizado! Faça login para continuar.", [
+          { text: "OK", onPress: () => navigation.navigate("SignIn") },
+        ]);
+      }
+    } catch (e) {
+      const msg = e?.message?.replace(/^Erro na API:\s*/i, "") || "Falha ao registrar. Tente novamente.";
+      Alert.alert("Erro", msg);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -97,8 +110,8 @@ export default function Register() {
           onChangeText={setConfirmPassword}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
-          <Text style={styles.buttonText}>Cadastrar</Text>
+        <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={submitting}>
+          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Cadastrar</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate("Welcome")}>

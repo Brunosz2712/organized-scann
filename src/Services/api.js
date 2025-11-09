@@ -1,20 +1,20 @@
-// src/Services/api.js
 import { API_BASE_URL, API_TIMEOUT_MS } from "../Config/env";
 
-// Quando API_BASE_URL está vazio => modo local (sem chamadas de rede)
-export const isLocalMode = !API_BASE_URL;
+
+export const isLocalMode = !String(API_BASE_URL || "").trim();
 
 function buildUrl(path) {
-  const base = (API_BASE_URL || "").replace(/\/+$/, "");
-  const p = String(path || "").replace(/^\/+/, "");
-  return `${base}/${p}`;
+  const p = String(path || "");
+
+  if (/^https?:\/\//i.test(p)) return p;
+
+  const base = String(API_BASE_URL || "").trim().replace(/\/+$/, "");
+  const cleanPath = p.replace(/^\/+/, "");
+  return `${base}/${cleanPath}`;
 }
 
 export async function apiRequest(path, { method = "GET", body, token } = {}) {
-  if (isLocalMode) {
-    // Em modo local, não chamamos rede; quem usa deve tratar o fallback.
-    throw new Error("LOCAL_MODE");
-  }
+  if (isLocalMode) throw new Error("LOCAL_MODE");
 
   const url = buildUrl(path);
   const headers = { Accept: "application/json" };
@@ -27,7 +27,8 @@ export async function apiRequest(path, { method = "GET", body, token } = {}) {
   }
 
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(API_TIMEOUT_MS) ? API_TIMEOUT_MS : 10000;
+  const t = setTimeout(() => controller.abort(), timeoutMs);
   init.signal = controller.signal;
 
   let res;
@@ -35,29 +36,37 @@ export async function apiRequest(path, { method = "GET", body, token } = {}) {
     res = await fetch(url, init);
   } catch (err) {
     clearTimeout(t);
+    const isAbort = err?.name === "AbortError";
+    const baseMsg = isAbort ? "Tempo esgotado na requisição" : (err?.message || "Network request failed");
     throw new Error(
-      (err?.message || "Network request failed") +
-        `\n\nDicas:\n- Verifique API_BASE_URL em src/Config/env.js\n- A API está acessível do dispositivo?\nURL: ${url}`
+      `${baseMsg}\n\nDicas:\n- Verifique API_BASE_URL em src/Config/env.js\n- A API está acessível do dispositivo?\n- Endpoint correto?\nURL: ${url}`
     );
+  } finally {
+    clearTimeout(t);
   }
-  clearTimeout(t);
+
+ 
+  if (res.status === 204) return null;
 
   const text = await res.text();
   let data;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    data = text;
+    data = text || null;
   }
 
   if (!res.ok) {
-    const msg = (data && (data.message || data.error)) || `HTTP ${res.status}`;
+    const msg =
+      (data && typeof data === "object" && (data.message || data.error)) ||
+      (typeof data === "string" && data) ||
+      `HTTP ${res.status}`;
     throw new Error(`Erro na API: ${msg}`);
   }
 
-  // Normaliza envelopes comuns Data/data
   if (data && typeof data === "object" && ("Data" in data || "data" in data)) {
     return data.Data ?? data.data;
   }
+
   return data;
 }

@@ -1,4 +1,3 @@
-// src/Theme/theme.js
 export const dark = {
   name: "dark",
   bg: "#161616",
